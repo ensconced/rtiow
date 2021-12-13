@@ -10,23 +10,19 @@ fn divide(num: u32, denom: u32) -> f32 {
 }
 
 fn restart_line(stream: &mut impl Write) {
-    stream
-        .write_all(b"\x1B[2K\r") // clear line and return cursor to start
-        .expect("failed to write to stderr");
+    stream.write_all(b"\x1B[2K\r").unwrap(); // clear line and return cursor to start
 }
 
 fn display_progress(row: u32, stream: &mut impl Write) {
     let scanlines_remaining = IMAGE_HEIGHT - row;
     restart_line(stream);
     let msg = format!("scanlines remaining: {}", scanlines_remaining);
-    stream
-        .write_all(msg.as_bytes())
-        .expect("failed to write to stderr");
+    stream.write_all(msg.as_bytes()).unwrap();
 }
 
 fn display_done(stream: &mut impl Write) {
     restart_line(stream);
-    stream.write_all(b"Done!\n").expect("oh no");
+    stream.write_all(b"Done!\n").unwrap();
 }
 
 fn main() {
