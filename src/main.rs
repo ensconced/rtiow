@@ -17,9 +17,7 @@ fn restart_line(stream: &mut impl Write) {
 
 fn display_progress(row: u32, stream: &mut impl Write) {
     let scanlines_remaining = IMAGE_HEIGHT - row;
-    if row > 0 {
-        restart_line(stream);
-    }
+    restart_line(stream);
     let msg = format!("scanlines remaining: {}", scanlines_remaining);
     stream
         .write_all(msg.as_bytes())
