@@ -1,6 +1,4 @@
 use std::io::{self, Write};
-use std::thread::sleep;
-use std::time;
 
 const IMAGE_WIDTH: u32 = 256;
 const IMAGE_HEIGHT: u32 = 256;
@@ -11,21 +9,26 @@ fn divide(num: u32, denom: u32) -> f32 {
     num as f32 / denom as f32
 }
 
-fn display_progress(row: u32) {
+fn restart_line(stream: &mut impl Write) {
+    stream
+        .write_all(b"\x1B[2K\r") // clear line and return cursor to start
+        .expect("failed to write to stderr");
+}
+
+fn display_progress(row: u32, stream: &mut impl Write) {
     let scanlines_remaining = IMAGE_HEIGHT - row;
-    let mut stderr = io::stderr();
     if row > 0 {
-        stderr
-            .write_all(b"\x1B[2K") // clear line and return cursor to start
-            .expect("failed to write to stderr");
-        stderr
-            .write_all(b"\r") // clear line and return cursor to start
-            .expect("failed to write to stderr");
+        restart_line(stream);
     }
     let msg = format!("scanlines remaining: {}", scanlines_remaining);
-    stderr
+    stream
         .write_all(msg.as_bytes())
         .expect("failed to write to stderr");
+}
+
+fn display_done(stream: &mut impl Write) {
+    restart_line(stream);
+    stream.write_all(b"Done!\n").expect("oh no");
 }
 
 fn main() {
@@ -33,9 +36,9 @@ fn main() {
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
     println!("{}", MAX_COLOR);
 
+    let stderr = &mut io::stderr();
     for row in 0..IMAGE_HEIGHT {
-        sleep(time::Duration::from_millis(100));
-        display_progress(row);
+        display_progress(row, stderr);
 
         for col in 0..IMAGE_WIDTH {
             let red_level = divide(col, IMAGE_WIDTH - 1);
@@ -48,6 +51,5 @@ fn main() {
             println!("{} {} {}", r, g, b);
         }
     }
-    let mut stderr = io::stderr();
-    stderr.write_all(b"\n").expect("oh no");
+    display_done(stderr);
 }
