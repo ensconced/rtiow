@@ -1,12 +1,13 @@
 use std::io::{self, Write};
+mod vec3;
 
 const IMAGE_WIDTH: u32 = 256;
 const IMAGE_HEIGHT: u32 = 256;
-const MAX_COLOR: f32 = 255.0;
-const BLUE_LEVEL: f32 = 0.25;
+const MAX_COLOR: f64 = 255.0;
+const BLUE_LEVEL: f64 = 0.25;
 
-fn divide(num: u32, denom: u32) -> f32 {
-    num as f32 / denom as f32
+fn divide(num: u32, denom: u32) -> f64 {
+    num as f64 / denom as f64
 }
 
 fn restart_line(stream: &mut impl Write) {
