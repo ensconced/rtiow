@@ -12,6 +12,8 @@ impl ops::Add for Vec3 {
 
 impl ops::AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
+        // TODO - shouldn't I be able to use the add that I've already defined
+        // above here?
         *self = Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
 }
@@ -136,6 +138,9 @@ mod tests {
         assert_eq!(-v1, Vec3(-1.0, -2.0, -3.0));
     }
 
+    // TODO - test Hadamard
+    // TODO - test Scalar multiplication
+
     #[test]
     fn can_mul_assign_a_vector() {
         let mut v1 = Vec3(1.0, 2.0, 3.0);
@@ -143,12 +148,17 @@ mod tests {
         assert_eq!(v1, Vec3(2.0, 4.0, 6.0));
     }
 
+    // TODO - test div
+
     #[test]
     fn can_div_assign_a_vector() {
         let mut v1 = Vec3(1.0, 2.0, 3.0);
         v1 /= 2.0;
         assert_eq!(v1, Vec3(0.5, 1.0, 1.5));
     }
+
+    // TODO - test dot product
+    // TODO - test cross product
 
     #[test]
     fn can_get_length_of_a_vector() {
@@ -161,6 +171,8 @@ mod tests {
         let v1 = Vec3(2.0, 10.0, 11.0);
         assert_eq!(v1.length_squared(), 225.0);
     }
+
+    // TODO - test unit_vector
 
     #[test]
     fn can_display_a_vector() {
