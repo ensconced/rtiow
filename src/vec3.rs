@@ -1,18 +1,25 @@
-use std::ops;
+use std::{fmt, ops};
 
 #[derive(Debug)]
-pub struct Vec3(f64, f64, f64);
+pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl ops::Add for Vec3 {
     type Output = Self;
-    fn add(self, rhs: Vec3) -> Vec3 {
+    fn add(self, rhs: Self) -> Self {
         Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
 }
 
 impl ops::AddAssign for Vec3 {
-    fn add_assign(&mut self, rhs: Vec3) {
+    fn add_assign(&mut self, rhs: Self) {
         *self = Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
+
+impl ops::Sub for Vec3 {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
     }
 }
 
@@ -24,9 +31,32 @@ impl ops::Neg for Vec3 {
     }
 }
 
+// Hadamard product
+impl ops::Mul for Vec3 {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
+    }
+}
+
+// Scalar product
+impl ops::Mul<f64> for Vec3 {
+    type Output = Self;
+    fn mul(self, rhs: f64) -> Self {
+        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
+    }
+}
+
 impl ops::MulAssign<f64> for Vec3 {
     fn mul_assign(&mut self, rhs: f64) {
         *self = Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
+    }
+}
+
+impl ops::Div<f64> for Vec3 {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self {
+        Self(self.0 / rhs, self.1 / rhs, self.2 / rhs)
     }
 }
 
@@ -44,12 +74,35 @@ impl Vec3 {
     fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
+
+    fn dot(&self, rhs: Self) -> f64 {
+        self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
+    }
+
+    fn cross(&self, rhs: Self) -> Self {
+        Vec3(
+            self.1 * rhs.2 - self.2 * rhs.1,
+            self.2 * rhs.0 - self.0 * rhs.2,
+            self.0 * rhs.1 - self.1 * rhs.0,
+        )
+    }
 }
 
 impl PartialEq for Vec3 {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0 && self.1 == other.1 && self.2 == other.2
     }
+}
+
+impl fmt::Display for Vec3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {} {}", self.0, self.1, self.2)
+    }
+}
+
+pub fn unit_vector(v: Vec3) -> Vec3 {
+    let len = v.length();
+    v / len
 }
 
 #[cfg(test)]
@@ -68,6 +121,13 @@ mod tests {
         let v2 = Vec3(4.0, 5.0, 6.0);
         v1 += v2;
         assert_eq!(v1, Vec3(5.0, 7.0, 9.0));
+    }
+
+    #[test]
+    fn can_subtract_two_vectors() {
+        let v1 = Vec3(1.0, 2.0, 3.0);
+        let v2 = Vec3(6.0, 5.0, 4.0);
+        assert_eq!(v2 - v1, Vec3(5.0, 3.0, 1.0));
     }
 
     #[test]
@@ -100,5 +160,12 @@ mod tests {
     fn can_get_length_squared_of_a_vector() {
         let v1 = Vec3(2.0, 10.0, 11.0);
         assert_eq!(v1.length_squared(), 225.0);
+    }
+
+    #[test]
+    fn can_display_a_vector() {
+        let v1 = Vec3(1.1, 2.2, 3.3);
+        let string = format!("{}", v1);
+        assert_eq!(string, "1.1 2.2 3.3");
     }
 }
