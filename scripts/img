@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -eu
+
+cargo run >hello-world.ppm
+open hello-world.ppm
