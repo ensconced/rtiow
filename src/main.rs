@@ -1,5 +1,4 @@
-use std::io::{self, Write};
-mod vec3;
+// mod vec3;
 
 const IMAGE_WIDTH: u32 = 256;
 const IMAGE_HEIGHT: u32 = 256;
@@ -10,20 +9,19 @@ fn divide(num: u32, denom: u32) -> f64 {
     num as f64 / denom as f64
 }
 
-fn restart_line(stream: &mut impl Write) {
-    stream.write_all(b"\x1B[2K\r").unwrap(); // clear line and return cursor to start
+fn restart_line() {
+    eprint!("\x1B[2K\r"); // clear line and return cursor to start
 }
 
-fn display_progress(row: u32, stream: &mut impl Write) {
+fn display_progress(row: u32) {
     let scanlines_remaining = IMAGE_HEIGHT - row;
-    restart_line(stream);
-    let msg = format!("scanlines remaining: {}", scanlines_remaining);
-    stream.write_all(msg.as_bytes()).unwrap();
+    restart_line();
+    eprint!("scanlines remaining: {}", scanlines_remaining);
 }
 
-fn display_done(stream: &mut impl Write) {
-    restart_line(stream);
-    stream.write_all(b"Done!\n").unwrap();
+fn display_done() {
+    restart_line();
+    eprintln!("Done");
 }
 
 fn main() {
@@ -31,9 +29,8 @@ fn main() {
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
     println!("{}", MAX_COLOR);
 
-    let stderr = &mut io::stderr();
     for row in 0..IMAGE_HEIGHT {
-        display_progress(row, stderr);
+        display_progress(row);
 
         for col in 0..IMAGE_WIDTH {
             let red_level = divide(col, IMAGE_WIDTH - 1);
@@ -46,5 +43,5 @@ fn main() {
             println!("{} {} {}", r, g, b);
         }
     }
-    display_done(stderr);
+    display_done();
 }
