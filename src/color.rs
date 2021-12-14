@@ -4,7 +4,7 @@ use crate::vec3::Vec3;
 
 #[derive(Debug)]
 pub struct Color {
-    vec: Vec3,
+    pub vec: Vec3,
 }
 
 impl Color {
@@ -12,6 +12,9 @@ impl Color {
         Color {
             vec: Vec3(red_level, green_level, blue_level),
         }
+    }
+    pub fn from_vec(vec: Vec3) -> Self {
+        Color { vec }
     }
 }
 
