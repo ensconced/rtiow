@@ -3,17 +3,22 @@ use std::{fmt, ops};
 #[derive(Debug)]
 pub struct Vec3(pub f64, pub f64, pub f64);
 
+impl ops::Add for &Vec3 {
+    type Output = Vec3;
+    fn add(self, rhs: Self) -> Vec3 {
+        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
+
 impl ops::Add for Vec3 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
 }
 
 impl ops::AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
-        // TODO - shouldn't I be able to use the add that I've already defined
-        // above here?
         *self = Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
 }
@@ -55,6 +60,13 @@ impl ops::MulAssign<f64> for Vec3 {
     }
 }
 
+impl ops::Div<f64> for &Vec3 {
+    type Output = Vec3;
+    fn div(self, rhs: f64) -> Vec3 {
+        Vec3(self.0 / rhs, self.1 / rhs, self.2 / rhs)
+    }
+}
+
 impl ops::Div<f64> for Vec3 {
     type Output = Self;
     fn div(self, rhs: f64) -> Self {
@@ -69,24 +81,27 @@ impl ops::DivAssign<f64> for Vec3 {
 }
 
 impl Vec3 {
-    fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f64 {
         self.0.powi(2) + self.1.powi(2) + self.2.powi(2)
     }
 
-    fn length(&self) -> f64 {
+    pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
 
-    fn dot(&self, rhs: Self) -> f64 {
+    pub fn dot(&self, rhs: Self) -> f64 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
 
-    fn cross(&self, rhs: Self) -> Self {
+    pub fn cross(&self, rhs: Self) -> Self {
         Vec3(
             self.1 * rhs.2 - self.2 * rhs.1,
             self.2 * rhs.0 - self.0 * rhs.2,
             self.0 * rhs.1 - self.1 * rhs.0,
         )
+    }
+    pub fn unit_vector(&self) -> Self {
+        self / self.length()
     }
 }
 
@@ -100,11 +115,6 @@ impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {} {}", self.0, self.1, self.2)
     }
-}
-
-pub fn unit_vector(v: Vec3) -> Vec3 {
-    let len = v.length();
-    v / len
 }
 
 #[cfg(test)]
@@ -138,8 +148,18 @@ mod tests {
         assert_eq!(-v1, Vec3(-1.0, -2.0, -3.0));
     }
 
-    // TODO - test Hadamard
-    // TODO - test Scalar multiplication
+    #[test]
+    fn can_get_hadamard_product() {
+        let v1 = Vec3(1.0, 2.0, 3.0);
+        let v2 = Vec3(4.0, 5.0, 6.0);
+        assert_eq!(v1 * v2, Vec3(4.0, 10.0, 18.0));
+    }
+
+    #[test]
+    fn can_get_scalar_product() {
+        let v1 = Vec3(1.0, 2.0, 3.0);
+        assert_eq!(v1 * 2.0, Vec3(2.0, 4.0, 6.0));
+    }
 
     #[test]
     fn can_mul_assign_a_vector() {
@@ -148,7 +168,11 @@ mod tests {
         assert_eq!(v1, Vec3(2.0, 4.0, 6.0));
     }
 
-    // TODO - test div
+    #[test]
+    fn can_divide_a_vector() {
+        let v1 = Vec3(2.0, 4.0, 6.0);
+        assert_eq!(v1 / 2.0, Vec3(1.0, 2.0, 3.0));
+    }
 
     #[test]
     fn can_div_assign_a_vector() {
@@ -157,8 +181,19 @@ mod tests {
         assert_eq!(v1, Vec3(0.5, 1.0, 1.5));
     }
 
-    // TODO - test dot product
-    // TODO - test cross product
+    #[test]
+    fn can_get_dot_product() {
+        let v1 = Vec3(1.0, 2.0, 3.0);
+        let v2 = Vec3(4.0, -5.0, 6.0);
+        assert_eq!(v1.dot(v2), 12.0);
+    }
+
+    #[test]
+    fn can_get_cross_product() {
+        let v1 = Vec3(1.0, 2.0, 3.0);
+        let v2 = Vec3(4.0, 5.0, 6.0);
+        assert_eq!(v1.cross(v2), Vec3(-3.0, 6.0, -3.0));
+    }
 
     #[test]
     fn can_get_length_of_a_vector() {
@@ -172,7 +207,11 @@ mod tests {
         assert_eq!(v1.length_squared(), 225.0);
     }
 
-    // TODO - test unit_vector
+    #[test]
+    fn can_get_unit_vector() {
+        let v1 = Vec3(2.0, 10.0, 11.0);
+        assert_eq!(v1.unit_vector(), Vec3(2.0 / 15.0, 10.0 / 15.0, 11.0 / 15.0));
+    }
 
     #[test]
     fn can_display_a_vector() {

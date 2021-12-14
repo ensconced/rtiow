@@ -1,3 +1,4 @@
+mod color;
 mod vec3;
 
 const IMAGE_WIDTH: u32 = 256;
@@ -35,16 +36,9 @@ fn main() {
         for col in 0..IMAGE_WIDTH {
             let red_level = divide(col, IMAGE_WIDTH - 1);
             let green_level = 1.0 - divide(row, IMAGE_HEIGHT - 1);
-
-            let r = (red_level * MAX_COLOR) as u32;
-            let g = (green_level * MAX_COLOR) as u32;
-            let b = (BLUE_LEVEL * MAX_COLOR) as u32;
-
-            println!("{} {} {}", r, g, b);
+            let pixel_color = color::Color::new(red_level, green_level, BLUE_LEVEL);
+            print!("{}", pixel_color);
         }
     }
     display_done();
-
-    let v1 = vec3::Vec3(1.0, 2.0, 3.0);
-    eprintln!("{:?}", v1);
 }
