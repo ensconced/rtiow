@@ -1,6 +1,8 @@
 use std::fmt;
 
 use crate::vec3::Vec3;
+#[allow(unused_imports)]
+use rand::random;
 
 #[derive(Debug)]
 pub struct Color {
@@ -15,6 +17,13 @@ impl Color {
     }
     pub fn from_vec(vec: Vec3) -> Self {
         Color { vec }
+    }
+
+    #[allow(dead_code)]
+    pub fn random() -> Self {
+        Color {
+            vec: Vec3(rand::random(), rand::random(), rand::random()),
+        }
     }
 
     pub fn red() -> Self {

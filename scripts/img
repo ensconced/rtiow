@@ -2,5 +2,6 @@
 
 set -eu
 
-cargo run >hello-world.ppm
-open hello-world.ppm
+outfile="${1:-img.ppm}"
+cargo run >"$outfile"
+open "$outfile"
