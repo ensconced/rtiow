@@ -39,10 +39,11 @@ impl hittable::Hittable for Sphere {
         }
 
         let hit_point = ray.at(root);
-        Some(hittable::Hit {
-            ray_t: root,
-            normal: self.normal_at(&hit_point),
-            point: hit_point,
-        })
+        Some(hittable::Hit::new(
+            self.normal_at(&hit_point),
+            hit_point,
+            ray,
+            root,
+        ))
     }
 }
