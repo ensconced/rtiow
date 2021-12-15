@@ -81,7 +81,7 @@ impl Range {
 }
 
 // re-maps a number from one range to another
-fn remap(value: f64, original_range: Range, new_range: Range) -> f64 {
+fn remap(value: f64, original_range: &Range, new_range: &Range) -> f64 {
     let original_width = original_range.width();
     if original_width == 0.0 {
         return new_range.min;
@@ -101,15 +101,25 @@ fn background(ray: ray::Ray) -> color::Color {
         max: VIEWPORT_HEIGHT / 2.0,
     };
     let new_range = Range { min: 0.0, max: 1.0 };
-    let upwardsness = remap(direction.y(), vectors_y_range, new_range);
+    let upwardsness = remap(direction.y(), &vectors_y_range, &new_range);
     let sky_blue = color::Color::new(0.5, 0.7, 1.0);
     let white = color::Color::new(1.0, 1.0, 1.0);
     color::Color::from_vec(lerp(upwardsness, white.vec, sky_blue.vec))
 }
 
 fn ray_color(ray: ray::Ray, sphere: &sphere::Sphere) -> color::Color {
-    if ray.hits_sphere(sphere) {
-        return color::Color::red();
+    if let Some(t) = ray.t_at_intersection(sphere) {
+        let normal = sphere.normal(ray.at(t));
+        let normal_component_range = Range {
+            min: -1.0,
+            max: 1.0,
+        };
+        let new_range = Range { min: 0.0, max: 1.0 };
+        let r = remap(normal.0, &normal_component_range, &new_range);
+        let g = remap(normal.1, &normal_component_range, &new_range);
+        let b = remap(normal.2, &normal_component_range, &new_range);
+        color::Color::new(r, g, b)
+    } else {
+        background(ray)
     }
-    background(ray)
 }
