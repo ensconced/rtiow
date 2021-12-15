@@ -1,7 +1,10 @@
 mod color;
+mod hittable;
 mod ray;
 mod sphere;
 mod vec3;
+
+use hittable::Hittable;
 
 // dimensions of produced image
 const IMAGE_WIDTH: u32 = 400;
@@ -108,8 +111,7 @@ fn background(ray: ray::Ray) -> color::Color {
 }
 
 fn ray_color(ray: ray::Ray, sphere: &sphere::Sphere) -> color::Color {
-    if let Some(t) = ray.t_at_intersection(sphere) {
-        let normal = sphere.normal(ray.at(t));
+    if let Some(hittable::Hit { normal, .. }) = sphere.hit(&ray, 0.0, 1.0) {
         let normal_component_range = Range {
             min: -1.0,
             max: 1.0,

@@ -26,6 +26,7 @@ impl Color {
         }
     }
 
+    #[allow(dead_code)]
     pub fn red() -> Self {
         Color {
             vec: Vec3(1.0, 0.0, 0.0),
