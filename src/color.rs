@@ -16,6 +16,12 @@ impl Color {
     pub fn from_vec(vec: Vec3) -> Self {
         Color { vec }
     }
+
+    pub fn red() -> Self {
+        Color {
+            vec: Vec3(1.0, 0.0, 0.0),
+        }
+    }
 }
 
 impl fmt::Display for Color {

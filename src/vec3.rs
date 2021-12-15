@@ -44,6 +44,20 @@ impl ops::Sub<&Vec3> for Vec3 {
     }
 }
 
+impl ops::Sub<Vec3> for &Vec3 {
+    type Output = Vec3;
+    fn sub(self, rhs: Vec3) -> Vec3 {
+        Vec3(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
+    }
+}
+
+impl ops::Sub for &Vec3 {
+    type Output = Vec3;
+    fn sub(self, rhs: Self) -> Vec3 {
+        Vec3(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
+    }
+}
+
 impl ops::Neg for Vec3 {
     type Output = Self;
     fn neg(self) -> Self {
@@ -109,7 +123,7 @@ impl Vec3 {
         self.length_squared().sqrt()
     }
 
-    pub fn dot(&self, rhs: Self) -> f64 {
+    pub fn dot(&self, rhs: &Self) -> f64 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
 
@@ -223,7 +237,7 @@ mod tests {
     fn can_get_dot_product() {
         let v1 = Vec3(1.0, 2.0, 3.0);
         let v2 = Vec3(4.0, -5.0, 6.0);
-        assert_eq!(v1.dot(v2), 12.0);
+        assert_eq!(v1.dot(&v2), 12.0);
     }
 
     #[test]
