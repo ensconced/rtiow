@@ -1,16 +1,16 @@
-use crate::ray;
-use crate::vec3;
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 pub struct Hit {
     #[allow(dead_code)]
-    point: vec3::Vec3,
-    pub normal: vec3::Vec3,
+    point: Vec3,
+    pub normal: Vec3,
     #[allow(dead_code)]
     ray_t: f64,
 }
 
 impl Hit {
-    pub fn new(point: vec3::Vec3, outwards_normal: vec3::Vec3, ray: &ray::Ray, ray_t: f64) -> Self {
+    pub fn new(point: Vec3, outwards_normal: Vec3, ray: &Ray, ray_t: f64) -> Self {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from
         // outside;
@@ -29,5 +29,5 @@ impl Hit {
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &ray::Ray, t_min: f64, t_max: f64) -> Option<Hit>;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit>;
 }

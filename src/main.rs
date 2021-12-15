@@ -1,5 +1,6 @@
 mod color;
 mod hittable;
+mod hittableList;
 mod ray;
 mod sphere;
 mod vec3;

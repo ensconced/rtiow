@@ -1,20 +1,20 @@
-use crate::hittable;
-use crate::ray;
-use crate::vec3;
+use crate::hittable::{Hit, Hittable};
+use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 pub struct Sphere {
     pub radius: f64,
-    pub center: vec3::Vec3,
+    pub center: Vec3,
 }
 
 impl Sphere {
-    pub fn normal_at(&self, point: &vec3::Vec3) -> vec3::Vec3 {
+    pub fn normal_at(&self, point: &Vec3) -> Vec3 {
         (point - &self.center).unit_vector()
     }
 }
 
-impl hittable::Hittable for Sphere {
-    fn hit(&self, ray: &ray::Ray, t_min: f64, t_max: f64) -> Option<hittable::Hit> {
+impl Hittable for Sphere {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let center_to_ray_origin = ray.origin - &self.center;
         // a, b, c as in the quadratic formula
         let a = ray.vector.dot(ray.vector);
@@ -39,11 +39,6 @@ impl hittable::Hittable for Sphere {
         }
 
         let hit_point = ray.at(root);
-        Some(hittable::Hit::new(
-            self.normal_at(&hit_point),
-            hit_point,
-            ray,
-            root,
-        ))
+        Some(Hit::new(self.normal_at(&hit_point), hit_point, ray, root))
     }
 }
