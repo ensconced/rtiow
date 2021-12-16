@@ -5,7 +5,9 @@ mod ray;
 mod sphere;
 mod vec3;
 
-use hittable::Hittable;
+use hittable_list::HittableList;
+use sphere::Sphere;
+use vec3::Vec3;
 
 // dimensions of produced image
 const IMAGE_WIDTH: u32 = 400;
@@ -52,10 +54,15 @@ fn main() {
     let origin_to_image_center = vec3::Vec3(0.0, 0.0, -FOCAL_LENGTH);
     let image_bottom_left = &origin + origin_to_image_center - &horizontal / 2.0 - &vertical / 2.0;
 
-    let sphere = sphere::Sphere {
+    let mut world = HittableList::new();
+    world.add(Box::new(Sphere {
         radius: 0.5,
-        center: vec3::Vec3(0.0, 0.0, -1.0),
-    };
+        center: Vec3(0.0, 0.0, -1.0),
+    }));
+    // world.add(Box::new(Sphere {
+    //     radius: 100.0,
+    //     center: Vec3(0.0, -100.5, -1.0),
+    // }));
 
     for row in 0..IMAGE_HEIGHT {
         display_progress(row);
@@ -67,7 +74,7 @@ fn main() {
                 &image_bottom_left + &horizontal * across_level + &vertical * (1.0 - down_level);
             let ray_vector = ray_image_intersection - &origin;
             let ray = ray::Ray::new(&origin, &ray_vector);
-            print!("{}", ray_color(ray, &sphere));
+            print!("{}", ray_color(ray, &world));
         }
     }
     display_done();
@@ -111,8 +118,8 @@ fn background(ray: ray::Ray) -> color::Color {
     color::Color::from_vec(lerp(upwardsness, white.vec, sky_blue.vec))
 }
 
-fn ray_color(ray: ray::Ray, sphere: &sphere::Sphere) -> color::Color {
-    if let Some(hittable::Hit { normal, .. }) = sphere.hit(&ray, 0.0, 1.0) {
+fn ray_color(ray: ray::Ray, world: &HittableList) -> color::Color {
+    if let Some(hittable::Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
         let normal_component_range = Range {
             min: -1.0,
             max: 1.0,

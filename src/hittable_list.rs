@@ -4,16 +4,17 @@ use crate::hittable::Hit;
 use crate::ray::Ray;
 
 type HittableElement = Box<dyn Hittable>;
-struct HittableList(Vec<HittableElement>);
+pub struct HittableList(Vec<HittableElement>);
 
 impl HittableList {
+    #[allow(dead_code)]
     fn clear(&mut self) {
         self.0.clear();
     }
-    fn add(&mut self, obj: HittableElement) {
+    pub fn add(&mut self, obj: HittableElement) {
         self.0.push(obj);
     }
-    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
+    pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let mut closest_hit = None;
         for hittable in self.0.iter() {
             let closest_so_far = if let Some(Hit { ray_t, .. }) = closest_hit {
@@ -26,5 +27,8 @@ impl HittableList {
             }
         }
         closest_hit
+    }
+    pub fn new() -> Self {
+        Self(Vec::new())
     }
 }
