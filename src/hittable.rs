@@ -5,8 +5,7 @@ pub struct Hit {
     #[allow(dead_code)]
     point: Vec3,
     pub normal: Vec3,
-    #[allow(dead_code)]
-    ray_t: f64,
+    pub ray_t: f64,
 }
 
 impl Hit {
