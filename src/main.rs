@@ -1,3 +1,4 @@
+mod camera;
 mod color;
 mod hittable;
 mod hittable_list;
@@ -5,21 +6,16 @@ mod ray;
 mod sphere;
 mod vec3;
 
+use camera::Camera;
+use color::Color;
+use hittable::Hit;
 use hittable_list::HittableList;
+use ray::Ray;
 use sphere::Sphere;
 use vec3::Vec3;
 
-// dimensions of produced image
-const IMAGE_WIDTH: u32 = 400;
-const IMAGE_ASPECT_RATIO: f64 = 16.0 / 9.0;
-const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / IMAGE_ASPECT_RATIO) as u32;
-
-// dimensions of "image" in space
-const VIEWPORT_HEIGHT: f64 = 2.0;
-const VIEWPORT_WIDTH: f64 = VIEWPORT_HEIGHT * IMAGE_ASPECT_RATIO;
-
-// focal length i.e. distance from "eye" to "image" in space
-const FOCAL_LENGTH: f64 = 1.0;
+// position of the eye
+// const origin: Vec3 = Vec3(0.0, 0.0, 0.0);
 
 const MAX_COLOR: u32 = 255;
 
@@ -31,8 +27,8 @@ fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
 }
 
-fn display_progress(row: u32) {
-    let scanlines_remaining = IMAGE_HEIGHT - row;
+fn display_progress(image_height: u32, row: u32) {
+    let scanlines_remaining = image_height - row;
     restart_line();
     eprint!("scanlines remaining: {}", scanlines_remaining);
 }
@@ -43,16 +39,11 @@ fn display_done() {
 }
 
 fn main() {
+    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+
     println!("P3"); // means this is an RGB color image in ASCII
-    println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
+    println!("{} {}", camera.image_width, camera.image_height);
     println!("{}", MAX_COLOR);
-
-    let origin = vec3::Vec3(0.0, 0.0, 0.0);
-
-    let horizontal = vec3::Vec3(VIEWPORT_WIDTH, 0.0, 0.0);
-    let vertical = vec3::Vec3(0.0, VIEWPORT_HEIGHT, 0.0);
-    let origin_to_image_center = vec3::Vec3(0.0, 0.0, -FOCAL_LENGTH);
-    let image_bottom_left = &origin + origin_to_image_center - &horizontal / 2.0 - &vertical / 2.0;
 
     let mut world = HittableList::new();
 
@@ -68,17 +59,14 @@ fn main() {
         center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
     }));
 
-    for row in 0..IMAGE_HEIGHT {
-        display_progress(row);
+    for row in 0..camera.image_height {
+        display_progress(camera.image_height, row);
 
-        for col in 0..IMAGE_WIDTH {
-            let across_level = divide(col, IMAGE_WIDTH - 1);
-            let down_level = divide(row, IMAGE_HEIGHT - 1);
-            let ray_image_intersection =
-                &image_bottom_left + &horizontal * across_level + &vertical * (1.0 - down_level);
-            let ray_vector = ray_image_intersection - &origin;
-            let ray = ray::Ray::new(&origin, &ray_vector);
-            print!("{}", ray_color(ray, &world));
+        for col in 0..camera.image_width {
+            let x_level = divide(col, camera.image_width - 1);
+            let y_level = 1.0 - divide(row, camera.image_height - 1);
+            let ray = camera.get_ray(x_level, y_level);
+            print!("{}", ray_color(camera.viewport_height, ray, &world));
         }
     }
     display_done();
@@ -105,25 +93,25 @@ fn remap(value: f64, original_range: &Range, new_range: &Range) -> f64 {
     new_range.min + level * new_range.width()
 }
 
-fn lerp(value: f64, start_value: vec3::Vec3, end_value: vec3::Vec3) -> vec3::Vec3 {
+fn lerp(value: f64, start_value: Vec3, end_value: Vec3) -> Vec3 {
     start_value * (1.0 - value) + end_value * value
 }
 
-fn background(ray: ray::Ray) -> color::Color {
+fn background(viewport_height: f64, ray: Ray) -> Color {
     let direction = ray.vector.unit_vector();
     let vectors_y_range = Range {
-        min: -VIEWPORT_HEIGHT / 2.0,
-        max: VIEWPORT_HEIGHT / 2.0,
+        min: -viewport_height / 2.0,
+        max: viewport_height / 2.0,
     };
     let new_range = Range { min: 0.0, max: 1.0 };
     let upwardsness = remap(direction.y(), &vectors_y_range, &new_range);
-    let sky_blue = color::Color::new(0.5, 0.7, 1.0);
-    let white = color::Color::new(1.0, 1.0, 1.0);
-    color::Color::from_vec(lerp(upwardsness, white.vec, sky_blue.vec))
+    let sky_blue = Color::new(0.5, 0.7, 1.0);
+    let white = Color::new(1.0, 1.0, 1.0);
+    Color::from_vec(lerp(upwardsness, white.vec, sky_blue.vec))
 }
 
-fn ray_color(ray: ray::Ray, world: &HittableList) -> color::Color {
-    if let Some(hittable::Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
+fn ray_color(viewport_height: f64, ray: Ray, world: &HittableList) -> Color {
+    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
         let normal_component_range = Range {
             min: -1.0,
             max: 1.0,
@@ -132,8 +120,8 @@ fn ray_color(ray: ray::Ray, world: &HittableList) -> color::Color {
         let r = remap(normal.0, &normal_component_range, &new_range);
         let g = remap(normal.1, &normal_component_range, &new_range);
         let b = remap(normal.2, &normal_component_range, &new_range);
-        color::Color::new(r, g, b)
+        Color::new(r, g, b)
     } else {
-        background(ray)
+        background(viewport_height, ray)
     }
 }

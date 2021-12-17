@@ -11,7 +11,7 @@ impl Hit {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from
         // outside;
-        let ray_is_from_outside = outwards_normal.dot(ray.vector) < 0.0;
+        let ray_is_from_outside = outwards_normal.dot(&ray.vector) < 0.0;
         let normal = if ray_is_from_outside {
             outwards_normal
         } else {

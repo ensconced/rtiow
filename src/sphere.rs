@@ -17,7 +17,7 @@ impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let center_to_ray_origin = ray.origin - &self.center;
         // a, b, c as in the quadratic formula
-        let a = ray.vector.dot(ray.vector);
+        let a = ray.vector.dot(&ray.vector);
         let b = ray.vector.dot(&center_to_ray_origin) * 2.0;
         let c = center_to_ray_origin.dot(&center_to_ray_origin) - self.radius.powi(2);
         let discriminant = b.powi(2) - 4.0 * a * c;
