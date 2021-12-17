@@ -39,6 +39,21 @@ impl Hittable for Sphere {
         }
 
         let hit_point = ray.at(root);
-        Some(Hit::new(self.normal_at(&hit_point), hit_point, ray, root))
+        Some(Hit::new(self.normal_at(&hit_point), ray, root))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_get_normal() {
+        let sphere = Sphere {
+            radius: 1.0,
+            center: Vec3(0.0, 0.0, 0.0),
+        };
+        let point = Vec3(1.0, 0.0, 0.0);
+        assert_eq!(sphere.normal_at(&point), Vec3(1.0, 0.0, 0.0));
     }
 }

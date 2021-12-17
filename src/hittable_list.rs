@@ -22,7 +22,7 @@ impl HittableList {
             } else {
                 t_max
             };
-            if let Some(hit) = hittable.hit(&ray, t_min, closest_so_far) {
+            if let Some(hit) = hittable.hit(ray, t_min, closest_so_far) {
                 closest_hit = Some(hit);
             }
         }

@@ -39,7 +39,7 @@ impl fmt::Display for Color {
         let r = (self.vec.0 * 255.999) as u32;
         let g = (self.vec.1 * 255.999) as u32;
         let b = (self.vec.2 * 255.999) as u32;
-        write!(f, "{} {} {}\n", r, g, b)
+        writeln!(f, "{} {} {}", r, g, b)
     }
 }
 

@@ -55,14 +55,18 @@ fn main() {
     let image_bottom_left = &origin + origin_to_image_center - &horizontal / 2.0 - &vertical / 2.0;
 
     let mut world = HittableList::new();
+
+    let sphere1_radius = 0.5;
     world.add(Box::new(Sphere {
-        radius: 0.5,
+        radius: sphere1_radius,
         center: Vec3(0.0, 0.0, -1.0),
     }));
-    // world.add(Box::new(Sphere {
-    //     radius: 100.0,
-    //     center: Vec3(0.0, -100.5, -1.0),
-    // }));
+
+    let sphere2_radius = 100.0;
+    world.add(Box::new(Sphere {
+        radius: sphere2_radius,
+        center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
+    }));
 
     for row in 0..IMAGE_HEIGHT {
         display_progress(row);
