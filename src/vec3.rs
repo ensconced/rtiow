@@ -146,15 +146,6 @@ impl Vec3 {
     pub fn z(&self) -> f64 {
         self.2
     }
-    pub fn i(&self) -> f64 {
-        self.0
-    }
-    pub fn j(&self) -> f64 {
-        self.1
-    }
-    pub fn k(&self) -> f64 {
-        self.2
-    }
 }
 
 impl PartialEq for Vec3 {

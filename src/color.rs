@@ -38,14 +38,29 @@ impl Color {
     pub fn white() -> Self {
         Self::new(1.0, 1.0, 1.0)
     }
+
+    pub fn r(&self) -> f64 {
+        self.vec.0
+    }
+
+    pub fn g(&self) -> f64 {
+        self.vec.1
+    }
+
+    pub fn b(&self) -> f64 {
+        self.vec.2
+    }
 }
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let r = (self.vec.0 * 255.999) as u32;
-        let g = (self.vec.1 * 255.999) as u32;
-        let b = (self.vec.2 * 255.999) as u32;
-        writeln!(f, "{} {} {}", r, g, b)
+        writeln!(
+            f,
+            "{} {} {}",
+            (self.r() * 255.999) as u32,
+            (self.g() * 255.999) as u32,
+            (self.b() * 255.999) as u32
+        )
     }
 }
 

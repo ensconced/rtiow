@@ -2,6 +2,7 @@ mod camera;
 mod color;
 mod hittable;
 mod hittable_list;
+mod pixel;
 mod ray;
 mod sphere;
 mod utils;
@@ -11,19 +12,15 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
+use pixel::Pixel;
+use rand::random;
 use ray::Ray;
 use sphere::Sphere;
 use utils::*;
 use vec3::Vec3;
 
-// position of the eye
-// const origin: Vec3 = Vec3(0.0, 0.0, 0.0);
-
 const MAX_COLOR: u32 = 255;
-
-fn divide(num: u32, denom: u32) -> f64 {
-    num as f64 / denom as f64
-}
+const SAMPLES_PER_PIXEL: u32 = 100;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -61,14 +58,24 @@ fn main() {
         center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
     }));
 
+    // TODO - implement Iterator for Camera to more easily iterate over pixels?
+
     for row in 0..camera.image_height {
         display_progress(camera.image_height, row);
 
         for col in 0..camera.image_width {
-            let x_level = divide(col, camera.image_width - 1);
-            let y_level = 1.0 - divide(row, camera.image_height - 1);
-            let ray = camera.get_ray(x_level, y_level);
-            print!("{}", ray_color(camera.viewport_height, ray, &world));
+            let mut pixel = Pixel::new();
+            for _ in 0..SAMPLES_PER_PIXEL {
+                let pixel_x: f64 = random();
+                let pixel_y: f64 = random();
+                let x_position = col as f64 + pixel_x;
+                let y_position = row as f64 + pixel_y;
+                let x_level = x_position / camera.image_width as f64;
+                let y_level = 1.0 - (y_position / camera.image_height as f64);
+                let ray = camera.get_ray(x_level, y_level);
+                pixel.add_color(ray_color(camera.viewport_height, ray, &world));
+            }
+            print!("{}", pixel.get_color());
         }
     }
     display_done();
