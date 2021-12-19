@@ -58,13 +58,13 @@ impl Color {
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "{} {} {}",
-            (self.r() * 255.999) as u32,
-            (self.g() * 255.999) as u32,
-            (self.b() * 255.999) as u32
-        )
+        let r = (self.r() * 255.999) as u32;
+        let g = (self.g() * 255.999) as u32;
+        let b = (self.b() * 255.999) as u32;
+        if r == 105 && g == 127 && b == 254 {
+            eprintln!("got it!");
+        }
+        writeln!(f, "{} {} {}", r, g, b)
     }
 }
 
