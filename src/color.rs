@@ -28,9 +28,15 @@ impl Color {
 
     #[allow(dead_code)]
     pub fn red() -> Self {
-        Color {
-            vec: Vec3(1.0, 0.0, 0.0),
-        }
+        Self::new(1.0, 0.0, 0.0)
+    }
+
+    pub fn sky_blue() -> Self {
+        Self::new(0.5, 0.7, 1.0)
+    }
+
+    pub fn white() -> Self {
+        Self::new(1.0, 1.0, 1.0)
     }
 }
 

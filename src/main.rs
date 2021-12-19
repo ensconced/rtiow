@@ -4,6 +4,7 @@ mod hittable;
 mod hittable_list;
 mod ray;
 mod sphere;
+mod utils;
 mod vec3;
 
 use camera::Camera;
@@ -12,6 +13,7 @@ use hittable::Hit;
 use hittable_list::HittableList;
 use ray::Ray;
 use sphere::Sphere;
+use utils::*;
 use vec3::Vec3;
 
 // position of the eye
@@ -72,51 +74,18 @@ fn main() {
     display_done();
 }
 
-struct Range {
-    min: f64,
-    max: f64,
-}
-
-impl Range {
-    fn width(&self) -> f64 {
-        self.max - self.min
-    }
-}
-
-// re-maps a number from one range to another
-fn remap(value: f64, original_range: &Range, new_range: &Range) -> f64 {
-    let original_width = original_range.width();
-    if original_width == 0.0 {
-        return new_range.min;
-    }
-    let level = (value - original_range.min) / original_width;
-    new_range.min + level * new_range.width()
-}
-
-fn lerp(value: f64, start_value: Vec3, end_value: Vec3) -> Vec3 {
-    start_value * (1.0 - value) + end_value * value
-}
-
 fn background(viewport_height: f64, ray: Ray) -> Color {
     let direction = ray.vector.unit_vector();
-    let vectors_y_range = Range {
-        min: -viewport_height / 2.0,
-        max: viewport_height / 2.0,
-    };
-    let new_range = Range { min: 0.0, max: 1.0 };
+    let vectors_y_range = Range::new(-viewport_height / 2.0, viewport_height / 2.0);
+    let new_range = Range::new(0.0, 1.0);
     let upwardsness = remap(direction.y(), &vectors_y_range, &new_range);
-    let sky_blue = Color::new(0.5, 0.7, 1.0);
-    let white = Color::new(1.0, 1.0, 1.0);
-    Color::from_vec(lerp(upwardsness, white.vec, sky_blue.vec))
+    Color::from_vec(lerp(upwardsness, Color::white().vec, Color::sky_blue().vec))
 }
 
 fn ray_color(viewport_height: f64, ray: Ray, world: &HittableList) -> Color {
     if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
-        let normal_component_range = Range {
-            min: -1.0,
-            max: 1.0,
-        };
-        let new_range = Range { min: 0.0, max: 1.0 };
+        let normal_component_range = Range::new(-1.0, 1.0);
+        let new_range = Range::new(0.0, 1.0);
         let r = remap(normal.0, &normal_component_range, &new_range);
         let g = remap(normal.1, &normal_component_range, &new_range);
         let b = remap(normal.2, &normal_component_range, &new_range);
