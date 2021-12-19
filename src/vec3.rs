@@ -1,3 +1,5 @@
+use crate::utils::Range;
+use rand::{thread_rng, Rng};
 use std::{fmt, ops};
 
 #[derive(Debug)]
@@ -115,6 +117,17 @@ impl ops::DivAssign<f64> for Vec3 {
 }
 
 impl Vec3 {
+    pub fn random() -> Self {
+        let mut rng = thread_rng();
+        Self(rng.gen(), rng.gen(), rng.gen())
+    }
+
+    pub fn random_from_range(range: Range) -> Self {
+        let mut rng = thread_rng();
+        let mut rand_in_range = || -> f64 { range.min + rng.gen::<f64>() * range.width() };
+        Self(rand_in_range(), rand_in_range(), rand_in_range())
+    }
+
     pub fn length_squared(&self) -> f64 {
         self.0.powi(2) + self.1.powi(2) + self.2.powi(2)
     }

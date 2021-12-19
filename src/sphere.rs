@@ -1,5 +1,6 @@
 use crate::hittable::{Hit, Hittable};
 use crate::ray::Ray;
+use crate::utils::Range;
 use crate::vec3::Vec3;
 
 pub struct Sphere {
@@ -10,6 +11,19 @@ pub struct Sphere {
 impl Sphere {
     pub fn normal_at(&self, point: &Vec3) -> Vec3 {
         (point - &self.center).unit_vector()
+    }
+
+    pub fn random_point(&self) -> Vec3 {
+        loop {
+            let vec = Vec3::random_from_range(Range::new(-self.radius, self.radius));
+            if vec.length_squared() < self.radius.powi(2) {
+                return &self.center + vec;
+            }
+        }
+    }
+
+    pub fn new(radius: f64, center: Vec3) -> Self {
+        Self { radius, center }
     }
 }
 
@@ -39,7 +53,7 @@ impl Hittable for Sphere {
         }
 
         let hit_point = ray.at(root);
-        Some(Hit::new(self.normal_at(&hit_point), ray, root))
+        Some(Hit::new(self.normal_at(&hit_point), hit_point, ray, root))
     }
 }
 

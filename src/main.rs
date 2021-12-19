@@ -20,6 +20,7 @@ use utils::*;
 use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
+const MAX_DEPTH: u32 = 20;
 const SAMPLES_PER_PIXEL: u32 = 100;
 
 fn restart_line() {
@@ -38,7 +39,7 @@ fn display_done() {
 }
 
 fn main() {
-    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(100, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -59,7 +60,6 @@ fn main() {
     }));
 
     // TODO - implement Iterator for Camera to more easily iterate over pixels?
-
     for row in 0..camera.image_height {
         display_progress(camera.image_height, row);
 
@@ -73,7 +73,7 @@ fn main() {
                 let x_level = x_position / camera.image_width as f64;
                 let y_level = 1.0 - (y_position / camera.image_height as f64);
                 let ray = camera.get_ray(x_level, y_level);
-                pixel.add_color(ray_color(camera.viewport_height, ray, &world));
+                pixel.add_color(ray_color(camera.viewport_height, ray, &world, MAX_DEPTH));
             }
             print!("{}", pixel.get_color());
         }
@@ -89,14 +89,19 @@ fn background(viewport_height: f64, ray: Ray) -> Color {
     Color::from_vec(lerp(upwardsness, Color::white().vec, Color::sky_blue().vec))
 }
 
-fn ray_color(viewport_height: f64, ray: Ray, world: &HittableList) -> Color {
-    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
-        let normal_component_range = Range::new(-1.0, 1.0);
-        let new_range = Range::new(0.0, 1.0);
-        let r = remap(normal.0, &normal_component_range, &new_range);
-        let g = remap(normal.1, &normal_component_range, &new_range);
-        let b = remap(normal.2, &normal_component_range, &new_range);
-        Color::new(r, g, b)
+fn ray_color(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -> Color {
+    if let Some(Hit {
+        normal, hit_point, ..
+    }) = world.hit(&ray, 0.0, 1.0)
+    {
+        if depth <= 0 {
+            return Color::black();
+        }
+        let unit_sphere = Sphere::new(1.0, &hit_point + normal);
+        let target = unit_sphere.random_point();
+        let reflected_ray_vector = &hit_point - target;
+        let reflected_ray = Ray::new(&hit_point, reflected_ray_vector);
+        Color::from_vec(ray_color(viewport_height, reflected_ray, world, depth - 1).vec * 0.5)
     } else {
         background(viewport_height, ray)
     }

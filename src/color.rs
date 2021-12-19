@@ -31,6 +31,10 @@ impl Color {
         Self::new(1.0, 0.0, 0.0)
     }
 
+    pub fn black() -> Self {
+        Self::new(0.0, 0.0, 0.0)
+    }
+
     pub fn sky_blue() -> Self {
         Self::new(0.5, 0.7, 1.0)
     }

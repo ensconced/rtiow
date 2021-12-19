@@ -3,11 +3,12 @@ use crate::vec3::Vec3;
 
 pub struct Hit {
     pub normal: Vec3,
+    pub hit_point: Vec3,
     pub ray_t: f64,
 }
 
 impl Hit {
-    pub fn new(outwards_normal: Vec3, ray: &Ray, ray_t: f64) -> Self {
+    pub fn new(outwards_normal: Vec3, hit_point: Vec3, ray: &Ray, ray_t: f64) -> Self {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from
         // outside;
@@ -17,7 +18,11 @@ impl Hit {
         } else {
             -outwards_normal
         };
-        Self { normal, ray_t }
+        Self {
+            normal,
+            ray_t,
+            hit_point,
+        }
     }
 }
 
