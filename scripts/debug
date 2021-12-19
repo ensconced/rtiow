@@ -4,8 +4,6 @@
 
 set -e
 
-# you would really think there would be an easier way of getting the name of the project...
-
 project_metadata=$(cargo metadata --format-version 1)
 project_name=$(echo "$project_metadata" | jq '.workspace_members | .[0]' --raw-output | cut -d' ' -f1)
 target_directory=$(echo "$project_metadata" | jq .target_directory --raw-output)

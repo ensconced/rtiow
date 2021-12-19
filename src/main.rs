@@ -23,7 +23,13 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 20;
 const SAMPLES_PER_PIXEL: u32 = 100;
 
-const DEBUG_USING_NORMALS: bool = true;
+enum DebugStrategy {
+    Normals,
+    SingleColor,
+    NoDebug,
+}
+
+const DEBUG_STRATEGY: DebugStrategy = DebugStrategy::SingleColor;
 const DISPLAY_PROGRESS: bool = false;
 
 fn restart_line() {
@@ -42,7 +48,7 @@ fn display_done() {
 }
 
 fn main() {
-    let camera = Camera::new(50, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -53,7 +59,7 @@ fn main() {
     let sphere1_radius = 0.3;
     world.add(Box::new(Sphere {
         radius: sphere1_radius,
-        center: Vec3(-1.15, 0.0, -1.0),
+        center: Vec3(0.0, 0.5, -1.0),
     }));
 
     // let sphere2_radius = 0.5;
@@ -69,35 +75,50 @@ fn main() {
         }
 
         for col in 0..camera.image_width {
-            let pixel_color = if DEBUG_USING_NORMALS {
-                let x_position = col as f64;
-                let y_position = row as f64;
-                let x_level = x_position / camera.image_width as f64;
-                let y_level = 1.0 - (y_position / camera.image_height as f64);
-                let ray = camera.get_ray(x_level, y_level);
-                if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
-                    color_by_normal(normal)
-                } else {
-                    background(camera.viewport_height, ray)
-                }
-            } else {
-                let mut pixel = Pixel::new();
-                for _ in 0..SAMPLES_PER_PIXEL {
-                    let pixel_x: f64 = random();
-                    let pixel_y: f64 = random();
-                    let x_position = col as f64 + pixel_x;
-                    let y_position = row as f64 + pixel_y;
+            let pixel_color = match DEBUG_STRATEGY {
+                DebugStrategy::Normals => {
+                    let x_position = col as f64;
+                    let y_position = row as f64;
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    pixel.add_color(color_by_diffuse_reflection(
-                        camera.viewport_height,
-                        ray,
-                        &world,
-                        MAX_DEPTH,
-                    ));
+                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
+                        color_by_normal(normal)
+                    } else {
+                        background(camera.viewport_height, ray)
+                    }
                 }
-                pixel.get_color()
+                DebugStrategy::SingleColor => {
+                    let x_position = col as f64;
+                    let y_position = row as f64;
+                    let x_level = x_position / camera.image_width as f64;
+                    let y_level = 1.0 - (y_position / camera.image_height as f64);
+                    let ray = camera.get_ray(x_level, y_level);
+                    if let Some(Hit { .. }) = world.hit(&ray, 0.0, 1.0) {
+                        Color::red()
+                    } else {
+                        background(camera.viewport_height, ray)
+                    }
+                }
+                DebugStrategy::NoDebug => {
+                    let mut pixel = Pixel::new();
+                    for _ in 0..SAMPLES_PER_PIXEL {
+                        let pixel_x: f64 = random();
+                        let pixel_y: f64 = random();
+                        let x_position = col as f64 + pixel_x;
+                        let y_position = row as f64 + pixel_y;
+                        let x_level = x_position / camera.image_width as f64;
+                        let y_level = 1.0 - (y_position / camera.image_height as f64);
+                        let ray = camera.get_ray(x_level, y_level);
+                        pixel.add_color(color_by_diffuse_reflection(
+                            camera.viewport_height,
+                            ray,
+                            &world,
+                            MAX_DEPTH,
+                        ));
+                    }
+                    pixel.get_color()
+                }
             };
             print!("{}", pixel_color);
         }
