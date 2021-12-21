@@ -84,7 +84,7 @@ fn main() {
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, 1.0) {
+                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, f64::INFINITY) {
                         color_by_normal(normal)
                     } else {
                         background(camera.viewport_height, ray)
