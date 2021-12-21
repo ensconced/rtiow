@@ -21,7 +21,7 @@ use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 20;
-const SAMPLES_PER_PIXEL: u32 = 100;
+const SAMPLES_PER_PIXEL: u32 = 20;
 
 enum DebugStrategy {
     Normals,
@@ -29,7 +29,7 @@ enum DebugStrategy {
     NoDebug,
 }
 
-const DEBUG_STRATEGY: DebugStrategy = DebugStrategy::SingleColor;
+const DEBUG_STRATEGY: DebugStrategy = DebugStrategy::Normals;
 const DISPLAY_PROGRESS: bool = false;
 
 fn restart_line() {
@@ -50,23 +50,25 @@ fn display_done() {
 fn main() {
     let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
 
+    eprintln!("{:?}", camera);
+
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
     println!("{}", MAX_COLOR);
 
     let mut world = HittableList::new();
 
-    let sphere1_radius = 0.3;
+    let sphere1_radius = 0.5;
     world.add(Box::new(Sphere {
         radius: sphere1_radius,
-        center: Vec3(0.0, 0.5, -1.0),
+        center: Vec3(0.0, 0.0, -1.0),
     }));
 
-    // let sphere2_radius = 0.5;
-    // world.add(Box::new(Sphere {
-    //     radius: sphere2_radius,
-    //     center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
-    // }));
+    let sphere2_radius = 100.0;
+    world.add(Box::new(Sphere {
+        radius: sphere2_radius,
+        center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
+    }));
 
     // TODO - implement Iterator for Camera to more easily iterate over pixels?
     for row in 0..camera.image_height {
