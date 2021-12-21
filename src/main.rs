@@ -20,8 +20,8 @@ use utils::*;
 use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
-const MAX_DEPTH: u32 = 20;
-const SAMPLES_PER_PIXEL: u32 = 20;
+const MAX_DEPTH: u32 = 50;
+const SAMPLES_PER_PIXEL: u32 = 100;
 
 enum DebugStrategy {
     Normals,
@@ -29,8 +29,8 @@ enum DebugStrategy {
     NoDebug,
 }
 
-const DEBUG_STRATEGY: DebugStrategy = DebugStrategy::Normals;
-const DISPLAY_PROGRESS: bool = false;
+const DEBUG_STRATEGY: DebugStrategy = DebugStrategy::NoDebug;
+const DISPLAY_PROGRESS: bool = true;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -49,8 +49,6 @@ fn display_done() {
 
 fn main() {
     let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
-
-    eprintln!("{:?}", camera);
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -84,7 +82,7 @@ fn main() {
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.0, f64::INFINITY) {
+                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.001, f64::INFINITY) {
                         color_by_normal(normal)
                     } else {
                         background(camera.viewport_height, ray)
@@ -96,7 +94,7 @@ fn main() {
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    if let Some(Hit { .. }) = world.hit(&ray, 0.0, 1.0) {
+                    if let Some(Hit { .. }) = world.hit(&ray, 0.001, f64::INFINITY) {
                         Color::red()
                     } else {
                         background(camera.viewport_height, ray)
@@ -155,14 +153,14 @@ fn color_by_diffuse_reflection(
 ) -> Color {
     if let Some(Hit {
         normal, hit_point, ..
-    }) = world.hit(&ray, 0.0, 1.0)
+    }) = world.hit(&ray, 0.001, f64::INFINITY)
     {
         if depth <= 0 {
             return Color::black();
         }
         let unit_sphere = Sphere::new(1.0, &hit_point + normal);
         let target = unit_sphere.random_point();
-        let reflected_ray_vector = &hit_point - target;
+        let reflected_ray_vector = target - &hit_point;
         let reflected_ray = Ray::new(&hit_point, reflected_ray_vector);
         Color::from_vec(
             color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1).vec * 0.5,

@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::utils::clamp;
+
 use crate::vec3::Vec3;
 #[allow(unused_imports)]
 use rand::random;
@@ -58,12 +60,9 @@ impl Color {
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let r = (self.r() * 255.999) as u32;
-        let g = (self.g() * 255.999) as u32;
-        let b = (self.b() * 255.999) as u32;
-        if r == 105 && g == 127 && b == 254 {
-            eprintln!("got it!");
-        }
+        let r = (clamp(self.r().sqrt(), 0.0, 0.999) * 256.0) as u32;
+        let g = (clamp(self.g().sqrt(), 0.0, 0.999) * 256.0) as u32;
+        let b = (clamp(self.b().sqrt(), 0.0, 0.999) * 256.0) as u32;
         writeln!(f, "{} {} {}", r, g, b)
     }
 }

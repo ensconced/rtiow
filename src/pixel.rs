@@ -16,9 +16,9 @@ impl Pixel {
 
     pub fn get_color(&self) -> Color {
         Color::new(
-            self.cumulative_color.0 / self.sample_count as f64,
-            self.cumulative_color.1 / self.sample_count as f64,
-            self.cumulative_color.2 / self.sample_count as f64,
+            self.cumulative_color.0 / (self.sample_count as f64),
+            self.cumulative_color.1 / (self.sample_count as f64),
+            self.cumulative_color.2 / (self.sample_count as f64),
         )
     }
 
