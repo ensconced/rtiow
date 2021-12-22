@@ -29,8 +29,14 @@ enum DebugStrategy {
     SingleColor,
 }
 
+enum ReflectionStrategy {
+    RandomInSphere,
+    Lambertian,
+}
+
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
+const REFLECTION_STRATEGY: ReflectionStrategy = ReflectionStrategy::RandomInSphere;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -154,8 +160,17 @@ fn color_by_diffuse_reflection(
         if depth <= 0 {
             return Color::black();
         }
-        let unit_sphere = Sphere::new(1.0, &hit_point + normal);
-        let target = unit_sphere.random_point();
+        let unit_sphere_center = hit_point + normal;
+        let unit_sphere = Sphere::new(1.0, unit_sphere_center);
+        let random_point_in_sphere = &unit_sphere.random_point();
+        let target = match REFLECTION_STRATEGY {
+            ReflectionStrategy::RandomInSphere => random_point_in_sphere,
+            ReflectionStrategy::Lambertian => {
+                let random_unit_vector = random_point_in_sphere.unit_vector();
+                let result = unit_sphere_center + random_unit_vector;
+                &result
+            }
+        };
         let reflected_ray_vector = target - &hit_point;
         let reflected_ray = Ray::new(&hit_point, reflected_ray_vector);
         Color::from_vec(
