@@ -48,13 +48,7 @@ fn display_done() {
     eprintln!("Done");
 }
 
-fn main() {
-    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
-
-    println!("P3"); // means this is an RGB color image in ASCII
-    println!("{} {}", camera.image_width, camera.image_height);
-    println!("{}", MAX_COLOR);
-
+fn create_world() -> HittableList {
     let mut world = HittableList::new();
 
     let sphere1_radius = 0.5;
@@ -68,6 +62,33 @@ fn main() {
         radius: sphere2_radius,
         center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
     }));
+    world
+}
+
+fn main() {
+    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let world = create_world();
+
+    println!("P3"); // means this is an RGB color image in ASCII
+    println!("{} {}", camera.image_width, camera.image_height);
+    println!("{}", MAX_COLOR);
+
+    let debug_coloring = |debug_setting, col, row| {
+        let x_position = col as f64;
+        let y_position = row as f64;
+        let x_level = x_position / camera.image_width as f64;
+        let y_level = 1.0 - (y_position / camera.image_height as f64);
+        let ray = camera.get_ray(x_level, y_level);
+
+        if let Some(Hit { normal, .. }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY) {
+            match debug_setting {
+                DebugStrategy::Normals => color_by_normal(normal),
+                DebugStrategy::SingleColor => Color::red(),
+            }
+        } else {
+            background(camera.viewport_height, ray)
+        }
+    };
 
     // TODO - implement Iterator for Camera to more easily iterate over pixels?
     for row in 0..camera.image_height {
@@ -77,21 +98,7 @@ fn main() {
 
         for col in 0..camera.image_width {
             let pixel_color = if let Some(debug_setting) = DEBUG_SETTING {
-                let x_position = col as f64;
-                let y_position = row as f64;
-                let x_level = x_position / camera.image_width as f64;
-                let y_level = 1.0 - (y_position / camera.image_height as f64);
-                let ray = camera.get_ray(x_level, y_level);
-
-                if let Some(Hit { normal, .. }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY)
-                {
-                    match debug_setting {
-                        DebugStrategy::Normals => color_by_normal(normal),
-                        DebugStrategy::SingleColor => Color::red(),
-                    }
-                } else {
-                    background(camera.viewport_height, ray)
-                }
+                debug_coloring(debug_setting, col, row)
             } else {
                 let mut pixel = Pixel::new();
                 for _ in 0..SAMPLES_PER_PIXEL {
@@ -118,47 +125,6 @@ fn main() {
         display_done();
     }
 }
-
-// let pixel_color = if DEBUG_SETTING == DebugStrategy::Normals
-//     || DEBUG_SETTING == DebugStrategy::SingleColor
-// {
-
-//     // if let Some(Hit { normal, .. }) =
-//     // world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY)
-//     // {
-//     //         if DebugStrategy == DebugStrategy.Normals {
-//     //             color_by_normal(normal)
-//     //         }
-//     //     } else {
-//     //         background(camera.viewport_height, ray)
-//     //     }
-// } else {
-//     let mut pixel = Pixel::new();
-//     for _ in 0..SAMPLES_PER_PIXEL {
-//         let pixel_x: f64 = random();
-//         let pixel_y: f64 = random();
-//         let x_position = col as f64 + pixel_x;
-//         let y_position = row as f64 + pixel_y;
-//         let x_level = x_position / camera.image_width as f64;
-//         let y_level = 1.0 - (y_position / camera.image_height as f64);
-//         let ray = camera.get_ray(x_level, y_level);
-//         pixel.add_color(color_by_diffuse_reflection(
-//             camera.viewport_height,
-//             ray,
-//             &world,
-//             MAX_DEPTH,
-//         ));
-//     }
-//     pixel.get_color()
-// };
-// DebugStrategy::SingleColor => {
-//     if let Some(Hit { .. }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY) {
-//         Color::red()
-//     } else {
-//         background(camera.viewport_height, ray)
-//     }
-// }
-// print!("{}", pixel_color);
 
 fn background(viewport_height: f64, ray: Ray) -> Color {
     let direction = ray.vector.unit_vector();
