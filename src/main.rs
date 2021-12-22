@@ -30,7 +30,6 @@ enum DebugStrategy {
 }
 
 const DEBUG_SETTING: Option<DebugStrategy> = None;
-
 const DISPLAY_PROGRESS: bool = true;
 
 fn restart_line() {
@@ -73,7 +72,7 @@ fn main() {
     println!("{} {}", camera.image_width, camera.image_height);
     println!("{}", MAX_COLOR);
 
-    let debug_coloring = |debug_setting, col, row| {
+    let debug_color = |debug_setting, col, row| {
         let x_position = col as f64;
         let y_position = row as f64;
         let x_level = x_position / camera.image_width as f64;
@@ -98,7 +97,7 @@ fn main() {
 
         for col in 0..camera.image_width {
             let pixel_color = if let Some(debug_setting) = DEBUG_SETTING {
-                debug_coloring(debug_setting, col, row)
+                debug_color(debug_setting, col, row)
             } else {
                 let mut pixel = Pixel::new();
                 for _ in 0..SAMPLES_PER_PIXEL {
