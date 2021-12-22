@@ -89,7 +89,6 @@ fn main() {
         }
     };
 
-    // TODO - implement Iterator for Camera to more easily iterate over pixels?
     for row in 0..camera.image_height {
         if DISPLAY_PROGRESS {
             display_progress(camera.image_height, row);
