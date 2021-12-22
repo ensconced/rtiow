@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::color;
 use crate::utils::clamp;
 
 use crate::vec3::Vec3;
@@ -60,10 +61,23 @@ impl Color {
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let r = (clamp(self.r().sqrt(), 0.0, 0.999) * 256.0) as u32;
-        let g = (clamp(self.g().sqrt(), 0.0, 0.999) * 256.0) as u32;
-        let b = (clamp(self.b().sqrt(), 0.0, 0.999) * 256.0) as u32;
-        writeln!(f, "{} {} {}", r, g, b)
+        fn gamma_correct(color_component: f64) -> f64 {
+            color_component.sqrt()
+        }
+
+        fn scale_color(color_component: f64) -> u32 {
+            // make sure we don't overshoot from to 255 to 256
+            let clamped = clamp(color_component, 0.0, 0.999);
+            (gamma_correct(clamped) * 256.0) as u32
+        }
+
+        writeln!(
+            f,
+            "{} {} {}",
+            scale_color(self.r()),
+            scale_color(self.g()),
+            scale_color(self.b())
+        )
     }
 }
 
