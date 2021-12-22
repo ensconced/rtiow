@@ -22,6 +22,7 @@ use vec3::Vec3;
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
+const PETER_PANNING_STEP: f64 = 0.001;
 
 enum DebugStrategy {
     Normals,
@@ -48,7 +49,7 @@ fn display_done() {
 }
 
 fn main() {
-    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(2000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -75,26 +76,26 @@ fn main() {
         }
 
         for col in 0..camera.image_width {
+            let mut x_position = col as f64;
+            let mut y_position = row as f64;
             let pixel_color = match DEBUG_STRATEGY {
                 DebugStrategy::Normals => {
-                    let x_position = col as f64;
-                    let y_position = row as f64;
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    if let Some(Hit { normal, .. }) = world.hit(&ray, 0.001, f64::INFINITY) {
+                    if let Some(Hit { normal, .. }) =
+                        world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY)
+                    {
                         color_by_normal(normal)
                     } else {
                         background(camera.viewport_height, ray)
                     }
                 }
                 DebugStrategy::SingleColor => {
-                    let x_position = col as f64;
-                    let y_position = row as f64;
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    if let Some(Hit { .. }) = world.hit(&ray, 0.001, f64::INFINITY) {
+                    if let Some(Hit { .. }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY) {
                         Color::red()
                     } else {
                         background(camera.viewport_height, ray)
@@ -105,8 +106,8 @@ fn main() {
                     for _ in 0..SAMPLES_PER_PIXEL {
                         let pixel_x: f64 = random();
                         let pixel_y: f64 = random();
-                        let x_position = col as f64 + pixel_x;
-                        let y_position = row as f64 + pixel_y;
+                        x_position += pixel_x;
+                        y_position += pixel_y;
                         let x_level = x_position / camera.image_width as f64;
                         let y_level = 1.0 - (y_position / camera.image_height as f64);
                         let ray = camera.get_ray(x_level, y_level);
@@ -153,7 +154,7 @@ fn color_by_diffuse_reflection(
 ) -> Color {
     if let Some(Hit {
         normal, hit_point, ..
-    }) = world.hit(&ray, 0.001, f64::INFINITY)
+    }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY)
     {
         if depth <= 0 {
             return Color::black();
