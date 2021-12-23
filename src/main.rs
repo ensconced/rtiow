@@ -163,7 +163,10 @@ fn color_by_diffuse_reflection(
     depth: u32,
 ) -> Color {
     if let Some(Hit {
-        normal, hit_point, ..
+        normal,
+        hit_point,
+        material,
+        ..
     }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
     {
         if depth == 0 {

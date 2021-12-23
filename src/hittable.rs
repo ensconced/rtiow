@@ -2,20 +2,20 @@ use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
-pub struct Hit<'a> {
+pub struct Hit {
     pub normal: Vec3,
     pub hit_point: Vec3,
     pub ray_t: f64,
-    material: &'a Material,
+    pub material: &'static dyn Material,
 }
 
-impl<'a> Hit<'a> {
+impl<'a> Hit {
     pub fn new(
         outwards_normal: Vec3,
         hit_point: Vec3,
         ray: &Ray,
         ray_t: f64,
-        material: &'a Material,
+        material: &'static dyn Material,
     ) -> Self {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from
