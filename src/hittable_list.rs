@@ -3,15 +3,15 @@ use crate::hittable::Hittable;
 use crate::hittable::Hit;
 use crate::ray::Ray;
 
-type HittableElement<'a> = Box<dyn Hittable + 'a>;
-pub struct HittableList<'a>(Vec<HittableElement<'a>>);
+type HittableElement = Box<dyn Hittable>;
+pub struct HittableList(Vec<HittableElement>);
 
-impl<'a> HittableList<'a> {
+impl HittableList {
     #[allow(dead_code)]
     fn clear(&mut self) {
         self.0.clear();
     }
-    pub fn add(&mut self, obj: HittableElement<'a>) {
+    pub fn add(&mut self, obj: HittableElement) {
         self.0.push(obj);
     }
     pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {

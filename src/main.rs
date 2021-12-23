@@ -26,6 +26,9 @@ const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 
+const MATERIAL_A: Material = Material {};
+const MATERIAL_B: Material = Material {};
+
 enum DebugStrategy {
     Normals,
     SingleColor,
@@ -56,33 +59,28 @@ fn display_done() {
     eprintln!("Done");
 }
 
-fn create_world<'a>(materialA: &'a Material, materialB: &'a Material) -> HittableList<'a> {
+fn create_world<'a>() -> HittableList {
     let mut world = HittableList::new();
 
     let sphere1_radius = 0.5;
-
-    let boxed: ObjectSphere<'a> =
-        ObjectSphere::new(sphere1_radius, Vec3(0.0, 0.0, -1.0), materialA);
-
-    let b = Box::new(boxed);
-
-    world.add(b);
+    world.add(Box::new(ObjectSphere::new(
+        sphere1_radius,
+        Vec3(0.0, 0.0, -1.0),
+        &MATERIAL_A,
+    )));
 
     let sphere2_radius = 100.0;
-
     world.add(Box::new(ObjectSphere::new(
         sphere2_radius,
         Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
-        materialB,
+        &MATERIAL_B,
     )));
     world
 }
 
 fn main() {
     let camera = Camera::new(1000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
-    let sphere1_material = Material {};
-    let sphere2_material = Material {};
-    let world = create_world(&sphere1_material, &sphere2_material);
+    let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -168,7 +166,7 @@ fn color_by_diffuse_reflection(
         normal, hit_point, ..
     }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
     {
-        if depth <= 0 {
+        if depth == 0 {
             return Color::black();
         }
         let reflection_vector = match REFLECTION_STRATEGY {
