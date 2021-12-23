@@ -1,14 +1,20 @@
 use crate::hittable::{Hit, Hittable};
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::utils::Range;
 use crate::vec3::Vec3;
 
-pub struct Sphere {
+pub struct GeometricSphere {
     pub radius: f64,
     pub center: Vec3,
 }
 
-impl Sphere {
+pub struct ObjectSphere<'a> {
+    geometry: GeometricSphere,
+    material: &'a Material,
+}
+
+impl GeometricSphere {
     pub fn normal_at(&self, point: &Vec3) -> Vec3 {
         (point - &self.center).unit_vector()
     }
@@ -45,13 +51,22 @@ impl Sphere {
     }
 }
 
-impl Hittable for Sphere {
+impl<'a> ObjectSphere<'a> {
+    pub fn new(radius: f64, center: Vec3, material: &'a Material) -> Self {
+        Self {
+            geometry: GeometricSphere { radius, center },
+            material,
+        }
+    }
+}
+
+impl<'a> Hittable for ObjectSphere<'a> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
-        let center_to_ray_origin = ray.origin - &self.center;
+        let center_to_ray_origin = ray.origin - &self.geometry.center;
         // a, b, c as in the quadratic formula
         let a = ray.vector.dot(&ray.vector);
         let b = ray.vector.dot(&center_to_ray_origin) * 2.0;
-        let c = center_to_ray_origin.dot(&center_to_ray_origin) - self.radius.powi(2);
+        let c = center_to_ray_origin.dot(&center_to_ray_origin) - self.geometry.radius.powi(2);
         let discriminant = b.powi(2) - 4.0 * a * c;
         if discriminant < 0.0 {
             return None;
@@ -71,7 +86,16 @@ impl Hittable for Sphere {
         }
 
         let hit_point = ray.at(root);
-        Some(Hit::new(self.normal_at(&hit_point), hit_point, ray, root))
+        Some(Hit::new(
+            self.geometry.normal_at(&hit_point),
+            hit_point,
+            ray,
+            root,
+            self.material,
+        ))
+    }
+    fn get_material(&self) -> &Material {
+        self.material
     }
 }
 
@@ -81,7 +105,7 @@ mod tests {
 
     #[test]
     fn can_get_normal() {
-        let sphere = Sphere {
+        let sphere = GeometricSphere {
             radius: 1.0,
             center: Vec3(0.0, 0.0, 0.0),
         };

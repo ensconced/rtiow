@@ -2,6 +2,7 @@ mod camera;
 mod color;
 mod hittable;
 mod hittable_list;
+mod material;
 mod pixel;
 mod ray;
 mod sphere;
@@ -12,10 +13,11 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
+use material::Material;
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
-use sphere::Sphere;
+use sphere::{GeometricSphere, ObjectSphere};
 use utils::*;
 use vec3::Vec3;
 
@@ -54,26 +56,33 @@ fn display_done() {
     eprintln!("Done");
 }
 
-fn create_world() -> HittableList {
+fn create_world<'a>(materialA: &'a Material, materialB: &'a Material) -> HittableList<'a> {
     let mut world = HittableList::new();
 
     let sphere1_radius = 0.5;
-    world.add(Box::new(Sphere {
-        radius: sphere1_radius,
-        center: Vec3(0.0, 0.0, -1.0),
-    }));
+
+    let boxed: ObjectSphere<'a> =
+        ObjectSphere::new(sphere1_radius, Vec3(0.0, 0.0, -1.0), materialA);
+
+    let b = Box::new(boxed);
+
+    world.add(b);
 
     let sphere2_radius = 100.0;
-    world.add(Box::new(Sphere {
-        radius: sphere2_radius,
-        center: Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
-    }));
+
+    world.add(Box::new(ObjectSphere::new(
+        sphere2_radius,
+        Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
+        materialB,
+    )));
     world
 }
 
 fn main() {
     let camera = Camera::new(1000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
-    let world = create_world();
+    let sphere1_material = Material {};
+    let sphere2_material = Material {};
+    let world = create_world(&sphere1_material, &sphere2_material);
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -163,9 +172,11 @@ fn color_by_diffuse_reflection(
             return Color::black();
         }
         let reflection_vector = match REFLECTION_STRATEGY {
-            ReflectionStrategy::RandomInSphere => Sphere::unit().random_point(),
+            ReflectionStrategy::RandomInSphere => GeometricSphere::unit().random_point(),
             ReflectionStrategy::Lambertian => Vec3::random_from_range(Range::new(-1.0, 1.0)),
-            ReflectionStrategy::Hemispherical => Sphere::unit().random_point_in_hemisphere(&normal),
+            ReflectionStrategy::Hemispherical => {
+                GeometricSphere::unit().random_point_in_hemisphere(&normal)
+            }
         };
         let reflected_ray = Ray::new(&hit_point, normal + reflection_vector);
         Color::from_vec(
