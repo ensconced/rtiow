@@ -22,8 +22,26 @@ impl Sphere {
         }
     }
 
+    pub fn random_point_in_hemisphere(&self, normal: &Vec3) -> Vec3 {
+        let mut point;
+        loop {
+            point = self.random_point();
+            if point.dot(normal) > 0.0 {
+                break;
+            }
+        }
+        point
+    }
+
     pub fn new(radius: f64, center: Vec3) -> Self {
         Self { radius, center }
+    }
+
+    pub fn unit() -> Self {
+        Self {
+            radius: 1.0,
+            center: Vec3(0.0, 0.0, 0.0),
+        }
     }
 }
 

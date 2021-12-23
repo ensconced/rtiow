@@ -22,7 +22,7 @@ use vec3::Vec3;
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
-const PETER_PANNING_STEP: f64 = 0.001;
+const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 
 enum DebugStrategy {
     Normals,
@@ -32,11 +32,12 @@ enum DebugStrategy {
 enum ReflectionStrategy {
     RandomInSphere,
     Lambertian,
+    Hemispherical,
 }
 
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
-const REFLECTION_STRATEGY: ReflectionStrategy = ReflectionStrategy::RandomInSphere;
+const REFLECTION_STRATEGY: ReflectionStrategy = ReflectionStrategy::Hemispherical;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -71,7 +72,7 @@ fn create_world() -> HittableList {
 }
 
 fn main() {
-    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(1000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
     let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
@@ -85,7 +86,8 @@ fn main() {
         let y_level = 1.0 - (y_position / camera.image_height as f64);
         let ray = camera.get_ray(x_level, y_level);
 
-        if let Some(Hit { normal, .. }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY) {
+        if let Some(Hit { normal, .. }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
+        {
             match debug_setting {
                 DebugStrategy::Normals => color_by_normal(normal),
                 DebugStrategy::SingleColor => Color::red(),
@@ -155,24 +157,17 @@ fn color_by_diffuse_reflection(
 ) -> Color {
     if let Some(Hit {
         normal, hit_point, ..
-    }) = world.hit(&ray, PETER_PANNING_STEP, f64::INFINITY)
+    }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
     {
         if depth <= 0 {
             return Color::black();
         }
-        let unit_sphere_center = hit_point + normal;
-        let unit_sphere = Sphere::new(1.0, unit_sphere_center);
-        let random_point_in_sphere = &unit_sphere.random_point();
-        let target = match REFLECTION_STRATEGY {
-            ReflectionStrategy::RandomInSphere => random_point_in_sphere,
-            ReflectionStrategy::Lambertian => {
-                let random_unit_vector = random_point_in_sphere.unit_vector();
-                let result = unit_sphere_center + random_unit_vector;
-                &result
-            }
+        let reflection_vector = match REFLECTION_STRATEGY {
+            ReflectionStrategy::RandomInSphere => Sphere::unit().random_point(),
+            ReflectionStrategy::Lambertian => Vec3::random_from_range(Range::new(-1.0, 1.0)),
+            ReflectionStrategy::Hemispherical => Sphere::unit().random_point_in_hemisphere(&normal),
         };
-        let reflected_ray_vector = target - &hit_point;
-        let reflected_ray = Ray::new(&hit_point, reflected_ray_vector);
+        let reflected_ray = Ray::new(&hit_point, normal + reflection_vector);
         Color::from_vec(
             color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1).vec * 0.5,
         )
