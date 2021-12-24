@@ -7,5 +7,16 @@ struct ScatterResult<'a> {
 }
 
 pub trait Material {
-    fn scatter(ray: Ray) -> ScatterResult;
+    fn scatter<'a>(&self, ray: Ray<'a>) -> ScatterResult<'a>;
+}
+
+pub struct Lambertian {}
+
+impl Material for Lambertian {
+    fn scatter<'a>(&self, ray: Ray<'a>) -> ScatterResult<'a> {
+        ScatterResult {
+            attenuation: Color::red(),
+            scattered: ray,
+        }
+    }
 }

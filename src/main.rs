@@ -13,7 +13,7 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::Material;
+use material::{Lambertian, Material};
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
@@ -26,8 +26,8 @@ const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 
-const MATERIAL_A: Material = Material {};
-const MATERIAL_B: Material = Material {};
+const MATERIAL_A: Lambertian = Lambertian {};
+const MATERIAL_B: Lambertian = Lambertian {};
 
 enum DebugStrategy {
     Normals,

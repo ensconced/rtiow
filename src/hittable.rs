@@ -37,5 +37,5 @@ impl<'a> Hit {
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit>;
-    fn get_material(&self) -> &Material;
+    fn get_material(&self) -> &dyn Material;
 }
