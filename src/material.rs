@@ -20,10 +20,9 @@ pub struct Lambertian {
 impl Material for Lambertian {
     fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b> {
         let reflection_vector = Vec3::random_from_range(Range::new(-1.0, 1.0));
-        let scattered_ray = Ray::new(&hit.hit_point, &hit.normal + reflection_vector);
         ScatterResult {
             material_color: self.color,
-            scattered_ray,
+            scattered_ray: Ray::new(&hit.hit_point, &hit.normal + reflection_vector),
         }
     }
 }
