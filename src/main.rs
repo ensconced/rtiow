@@ -80,7 +80,7 @@ fn create_world<'a>() -> HittableList {
 }
 
 fn main() {
-    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(4000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
     let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
