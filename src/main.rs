@@ -17,7 +17,7 @@ use material::Lambertian;
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
-use sphere::{GeometricSphere, ObjectSphere};
+use sphere::ObjectSphere;
 use utils::*;
 use vec3::Vec3;
 
@@ -26,23 +26,24 @@ const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 
-const MATERIAL_A: Lambertian = Lambertian {};
-const MATERIAL_B: Lambertian = Lambertian {};
+const MATERIAL_A: Lambertian = Lambertian {
+    color: &Color {
+        vec: Vec3(1.0, 0.0, 0.0),
+    },
+};
+const MATERIAL_B: Lambertian = Lambertian {
+    color: &Color {
+        vec: Vec3(0.0, 1.0, 0.0),
+    },
+};
 
 enum DebugStrategy {
     Normals,
     SingleColor,
 }
 
-enum ReflectionStrategy {
-    RandomInSphere,
-    Lambertian,
-    Hemispherical,
-}
-
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
-const REFLECTION_STRATEGY: ReflectionStrategy = ReflectionStrategy::Hemispherical;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -162,22 +163,16 @@ fn color_by_diffuse_reflection(
     world: &HittableList,
     depth: u32,
 ) -> Color {
-    if let Some(Hit {
-        normal,
-        hit_point,
-        material,
-        ..
-    }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
-    {
+    if let Some(hit) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY) {
         if depth == 0 {
             return Color::black();
         }
-        let scattered_ray = material.scatter(ray);
+        let scattered_ray = hit.material.scatter(&hit);
         let reflected_ray = scattered_ray.scattered_ray;
-        let attenuation = scattered_ray.material_color.vec;
         let scattered_ray_color =
             color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1);
-        Color::from_vec(scattered_ray_color.vec * attenuation)
+        let v = &scattered_ray.material_color.vec;
+        Color::from_vec(scattered_ray_color.vec * v)
     } else {
         background(viewport_height, ray)
     }

@@ -1,27 +1,28 @@
 use crate::color::Color;
+use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::utils::Range;
 use crate::vec3::Vec3;
 
 pub struct ScatterResult<'a> {
-    pub material_color: Color,
+    pub material_color: &'a Color,
     pub scattered_ray: Ray<'a>,
 }
 
 pub trait Material {
-    fn scatter<'a>(&self, ray: Ray<'a>) -> ScatterResult<'a>;
+    fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b>;
 }
 
 pub struct Lambertian {
-    color: Color,
+    pub color: &'static Color,
 }
 
 impl Material for Lambertian {
-    fn scatter<'a>(&self, ray: Ray<'a>) -> ScatterResult<'a> {
+    fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b> {
         let reflection_vector = Vec3::random_from_range(Range::new(-1.0, 1.0));
-        let scattered_ray = Ray::new(&hit_point, normal + reflection_vector);
+        let scattered_ray = Ray::new(&hit.hit_point, &hit.normal + reflection_vector);
         ScatterResult {
-            material_color: Color::red(),
+            material_color: self.color,
             scattered_ray,
         }
     }

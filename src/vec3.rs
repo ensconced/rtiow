@@ -75,6 +75,14 @@ impl ops::Mul for Vec3 {
     }
 }
 
+// Hadamard product
+impl ops::Mul<&Vec3> for Vec3 {
+    type Output = Vec3;
+    fn mul(self, rhs: &Vec3) -> Self {
+        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
+    }
+}
+
 // Scalar product
 impl ops::Mul<f64> for &Vec3 {
     type Output = Vec3;

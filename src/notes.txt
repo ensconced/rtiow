@@ -1,0 +1,10 @@
+lambertian needs a reference to a color
+so that reference needsa lifetime
+  - i.e. we need to know that the color reference will live as long as the lambertian struct
+
+so the impl of Material for the lambertian needs a lifetime
+
+
+scattered_ray lives as long as the origin that you pass in...
+
+the ScatterResult returned by scatter includes
