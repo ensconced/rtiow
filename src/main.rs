@@ -13,7 +13,7 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::{Lambertian, Material};
+use material::Lambertian;
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
@@ -79,7 +79,7 @@ fn create_world<'a>() -> HittableList {
 }
 
 fn main() {
-    let camera = Camera::new(1000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(400, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
     let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
@@ -172,17 +172,12 @@ fn color_by_diffuse_reflection(
         if depth == 0 {
             return Color::black();
         }
-        let reflection_vector = match REFLECTION_STRATEGY {
-            ReflectionStrategy::RandomInSphere => GeometricSphere::unit().random_point(),
-            ReflectionStrategy::Lambertian => Vec3::random_from_range(Range::new(-1.0, 1.0)),
-            ReflectionStrategy::Hemispherical => {
-                GeometricSphere::unit().random_point_in_hemisphere(&normal)
-            }
-        };
-        let reflected_ray = Ray::new(&hit_point, normal + reflection_vector);
-        Color::from_vec(
-            color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1).vec * 0.5,
-        )
+        let scattered_ray = material.scatter(ray);
+        let reflected_ray = scattered_ray.scattered_ray;
+        let attenuation = scattered_ray.material_color.vec;
+        let scattered_ray_color =
+            color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1);
+        Color::from_vec(scattered_ray_color.vec * attenuation)
     } else {
         background(viewport_height, ray)
     }

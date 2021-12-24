@@ -1,6 +1,5 @@
 use std::fmt;
 
-use crate::color;
 use crate::utils::clamp;
 
 use crate::vec3::Vec3;
