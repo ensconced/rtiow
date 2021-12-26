@@ -2,7 +2,7 @@ use crate::utils::Range;
 use rand::{thread_rng, Rng};
 use std::{fmt, ops};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl ops::Add<Vec3> for &Vec3 {
@@ -157,6 +157,10 @@ impl Vec3 {
     }
     pub fn unit_vector(&self) -> Self {
         self / self.length()
+    }
+    pub fn is_near_zero(&self) -> bool {
+        let s = 1e-8;
+        self.0.abs() < s && self.1.abs() < s && self.2.abs() < s
     }
     pub fn x(&self) -> f64 {
         self.0

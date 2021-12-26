@@ -1,6 +1,7 @@
 use crate::color::Color;
 use crate::hittable::Hit;
 use crate::ray::Ray;
+use crate::sphere::GeometricSphere;
 use crate::utils::Range;
 use crate::vec3::Vec3;
 
@@ -17,6 +18,14 @@ pub struct Lambertian {
     pub color: &'static Color,
 }
 
+pub struct RandomInSphere {
+    pub color: &'static Color,
+}
+
+pub struct Hemispherical {
+    pub color: &'static Color,
+}
+
 impl Material for Lambertian {
     fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b> {
         let reflection_vector = Vec3::random_from_range(Range::new(-1.0, 1.0));
@@ -27,11 +36,26 @@ impl Material for Lambertian {
     }
 }
 
-// let reflection_vector = match REFLECTION_STRATEGY {
-//     ReflectionStrategy::RandomInSphere => GeometricSphere::unit().random_point(),
-//     ReflectionStrategy::Lambertian => Vec3::random_from_range(Range::new(-1.0, 1.0)),
-//     ReflectionStrategy::Hemispherical => {
-//         GeometricSphere::unit().random_point_in_hemisphere(&normal)
-//     }
-// };
-// let reflected_ray = Ray::new(&hit_point, normal + reflection_vector);
+impl Material for RandomInSphere {
+    fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b> {
+        let reflection_vector = GeometricSphere::unit().random_point();
+        let mut scatter_direction = &hit.normal + reflection_vector;
+        if scatter_direction.is_near_zero() {
+            scatter_direction = hit.normal;
+        }
+        ScatterResult {
+            material_color: self.color,
+            scattered_ray: Ray::new(&hit.hit_point, scatter_direction),
+        }
+    }
+}
+
+impl Material for Hemispherical {
+    fn scatter<'b>(&self, hit: &'b Hit) -> ScatterResult<'b> {
+        let reflection_vector = GeometricSphere::unit().random_point_in_hemisphere(&hit.normal);
+        ScatterResult {
+            material_color: self.color,
+            scattered_ray: Ray::new(&hit.hit_point, &hit.normal + reflection_vector),
+        }
+    }
+}

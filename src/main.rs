@@ -13,7 +13,7 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::Lambertian;
+use material::{Hemispherical, Lambertian, RandomInSphere};
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
@@ -25,13 +25,14 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
+const IMAGE_WIDTH: u32 = 100;
 
 const MATERIAL_A: Lambertian = Lambertian {
     color: &Color {
         vec: Vec3(1.0, 0.0, 0.0),
     },
 };
-const MATERIAL_B: Lambertian = Lambertian {
+const MATERIAL_B: RandomInSphere = RandomInSphere {
     color: &Color {
         vec: Vec3(0.0, 1.0, 0.0),
     },
@@ -80,7 +81,7 @@ fn create_world<'a>() -> HittableList {
 }
 
 fn main() {
-    let camera = Camera::new(4000, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(IMAGE_WIDTH, 16.0 / 9.0, 2.0, 1.0, Vec3(0.0, 0.0, 0.0));
     let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
