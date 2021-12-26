@@ -15,20 +15,20 @@ pub struct ObjectSphere {
 }
 
 impl GeometricSphere {
-    pub fn normal_at(&self, point: &Vec3) -> Vec3 {
-        (point - &self.center).unit_vector()
+    pub fn normal_at(&self, point: Vec3) -> Vec3 {
+        (point - self.center).unit_vector()
     }
 
     pub fn random_point(&self) -> Vec3 {
         loop {
             let vec = Vec3::random_from_range(Range::new(-self.radius, self.radius));
             if vec.length_squared() < self.radius.powi(2) {
-                return &self.center + vec;
+                return self.center + vec;
             }
         }
     }
 
-    pub fn random_point_in_hemisphere(&self, normal: &Vec3) -> Vec3 {
+    pub fn random_point_in_hemisphere(&self, normal: Vec3) -> Vec3 {
         let mut point;
         loop {
             point = self.random_point();
@@ -60,13 +60,13 @@ impl ObjectSphere {
     }
 }
 
-impl<'a> Hittable for ObjectSphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
-        let center_to_ray_origin = ray.origin - &self.geometry.center;
+impl Hittable for ObjectSphere {
+    fn hit<'a>(&self, ray: &'a Ray, t_min: f64, t_max: f64) -> Option<Hit<'a>> {
+        let center_to_ray_origin = ray.origin - self.geometry.center;
         // a, b, c as in the quadratic formula
-        let a = ray.vector.dot(&ray.vector);
-        let b = ray.vector.dot(&center_to_ray_origin) * 2.0;
-        let c = center_to_ray_origin.dot(&center_to_ray_origin) - self.geometry.radius.powi(2);
+        let a = ray.vector.dot(ray.vector);
+        let b = ray.vector.dot(center_to_ray_origin) * 2.0;
+        let c = center_to_ray_origin.dot(center_to_ray_origin) - self.geometry.radius.powi(2);
         let discriminant = b.powi(2) - 4.0 * a * c;
         if discriminant < 0.0 {
             return None;
@@ -87,7 +87,7 @@ impl<'a> Hittable for ObjectSphere {
 
         let hit_point = ray.at(root);
         Some(Hit::new(
-            self.geometry.normal_at(&hit_point),
+            self.geometry.normal_at(hit_point),
             hit_point,
             ray,
             root,
@@ -110,6 +110,6 @@ mod tests {
             center: Vec3(0.0, 0.0, 0.0),
         };
         let point = Vec3(1.0, 0.0, 0.0);
-        assert_eq!(sphere.normal_at(&point), Vec3(1.0, 0.0, 0.0));
+        assert_eq!(sphere.normal_at(point), Vec3(1.0, 0.0, 0.0));
     }
 }

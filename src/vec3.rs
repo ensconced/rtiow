@@ -5,20 +5,6 @@ use std::{fmt, ops};
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3(pub f64, pub f64, pub f64);
 
-impl ops::Add<Vec3> for &Vec3 {
-    type Output = Vec3;
-    fn add(self, rhs: Vec3) -> Vec3 {
-        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
-    }
-}
-
-impl ops::Add<&Vec3> for &Vec3 {
-    type Output = Vec3;
-    fn add(self, rhs: &Vec3) -> Vec3 {
-        Vec3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
-    }
-}
-
 impl ops::Add for Vec3 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
@@ -39,27 +25,6 @@ impl ops::Sub for Vec3 {
     }
 }
 
-impl ops::Sub<&Vec3> for Vec3 {
-    type Output = Vec3;
-    fn sub(self, rhs: &Vec3) -> Self {
-        Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
-    }
-}
-
-impl ops::Sub<Vec3> for &Vec3 {
-    type Output = Vec3;
-    fn sub(self, rhs: Vec3) -> Vec3 {
-        Vec3(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
-    }
-}
-
-impl ops::Sub for &Vec3 {
-    type Output = Vec3;
-    fn sub(self, rhs: Self) -> Vec3 {
-        Vec3(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
-    }
-}
-
 impl ops::Neg for Vec3 {
     type Output = Self;
     fn neg(self) -> Self {
@@ -75,22 +40,7 @@ impl ops::Mul for Vec3 {
     }
 }
 
-// Hadamard product
-impl ops::Mul<&Vec3> for Vec3 {
-    type Output = Vec3;
-    fn mul(self, rhs: &Vec3) -> Self {
-        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
-    }
-}
-
 // Scalar product
-impl ops::Mul<f64> for &Vec3 {
-    type Output = Vec3;
-    fn mul(self, rhs: f64) -> Vec3 {
-        Vec3(self.0 * rhs, self.1 * rhs, self.2 * rhs)
-    }
-}
-
 impl ops::Mul<f64> for Vec3 {
     type Output = Self;
     fn mul(self, rhs: f64) -> Self {
@@ -101,13 +51,6 @@ impl ops::Mul<f64> for Vec3 {
 impl ops::MulAssign<f64> for Vec3 {
     fn mul_assign(&mut self, rhs: f64) {
         *self = Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
-    }
-}
-
-impl ops::Div<f64> for &Vec3 {
-    type Output = Vec3;
-    fn div(self, rhs: f64) -> Vec3 {
-        Vec3(self.0 / rhs, self.1 / rhs, self.2 / rhs)
     }
 }
 
@@ -136,39 +79,46 @@ impl Vec3 {
         Self(rand_in_range(), rand_in_range(), rand_in_range())
     }
 
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(self) -> f64 {
         self.0.powi(2) + self.1.powi(2) + self.2.powi(2)
     }
 
-    pub fn length(&self) -> f64 {
+    pub fn length(self) -> f64 {
         self.length_squared().sqrt()
     }
 
-    pub fn dot(&self, rhs: &Self) -> f64 {
+    pub fn dot(self, rhs: Self) -> f64 {
         self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
 
-    pub fn cross(&self, rhs: Self) -> Self {
+    pub fn cross(self, rhs: Self) -> Self {
         Vec3(
             self.1 * rhs.2 - self.2 * rhs.1,
             self.2 * rhs.0 - self.0 * rhs.2,
             self.0 * rhs.1 - self.1 * rhs.0,
         )
     }
-    pub fn unit_vector(&self) -> Self {
+    pub fn project(self, other: Self) -> Self {
+        other * self.dot(other)
+    }
+    pub fn reflect(self, normal: Self) -> Self {
+        let b = -self.project(normal);
+        self + b * 2.0
+    }
+    pub fn unit_vector(self) -> Self {
         self / self.length()
     }
-    pub fn is_near_zero(&self) -> bool {
+    pub fn is_near_zero(self) -> bool {
         let s = 1e-8;
         self.0.abs() < s && self.1.abs() < s && self.2.abs() < s
     }
-    pub fn x(&self) -> f64 {
+    pub fn x(self) -> f64 {
         self.0
     }
-    pub fn y(&self) -> f64 {
+    pub fn y(self) -> f64 {
         self.1
     }
-    pub fn z(&self) -> f64 {
+    pub fn z(self) -> f64 {
         self.2
     }
 }
@@ -253,7 +203,7 @@ mod tests {
     fn can_get_dot_product() {
         let v1 = Vec3(1.0, 2.0, 3.0);
         let v2 = Vec3(4.0, -5.0, 6.0);
-        assert_eq!(v1.dot(&v2), 12.0);
+        assert_eq!(v1.dot(v2), 12.0);
     }
 
     #[test]

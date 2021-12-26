@@ -15,9 +15,9 @@ pub struct Camera {
 impl Camera {
     pub fn get_ray(&self, x_level: f64, y_level: f64) -> Ray {
         let ray_image_intersection =
-            &self.image_bottom_left + &self.horizontal * x_level + &self.vertical * y_level;
-        let ray_vector = ray_image_intersection - &self.origin;
-        Ray::new(&self.origin, ray_vector)
+            self.image_bottom_left + self.horizontal * x_level + self.vertical * y_level;
+        let ray_vector = ray_image_intersection - self.origin;
+        Ray::new(self.origin, ray_vector)
     }
     pub fn new(
         image_width: u32,
@@ -31,8 +31,7 @@ impl Camera {
         let horizontal = Vec3(viewport_width, 0.0, 0.0);
         let vertical = Vec3(0.0, viewport_height, 0.0);
         let origin_to_image_center = Vec3(0.0, 0.0, -focal_length);
-        let image_bottom_left =
-            &origin + origin_to_image_center - &horizontal / 2.0 - &vertical / 2.0;
+        let image_bottom_left = origin + origin_to_image_center - horizontal / 2.0 - vertical / 2.0;
         Self {
             horizontal,
             vertical,

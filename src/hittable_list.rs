@@ -14,7 +14,7 @@ impl HittableList {
     pub fn add(&mut self, obj: HittableElement) {
         self.0.push(obj);
     }
-    pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
+    pub fn hit<'a>(&self, ray: &'a Ray, t_min: f64, t_max: f64) -> Option<Hit<'a>> {
         let mut closest_hit = None;
         for hittable in self.0.iter() {
             let closest_so_far = if let Some(Hit { ray_t, .. }) = closest_hit {

@@ -13,7 +13,7 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::{Hemispherical, Lambertian, RandomInSphere};
+use material::{Hemispherical, Lambertian, Metal, RandomInSphere};
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
@@ -25,16 +25,26 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 100;
+const IMAGE_WIDTH: u32 = 1000;
 
-const MATERIAL_A: Lambertian = Lambertian {
+const GROUND_MATERIAL: Lambertian = Lambertian {
     color: &Color {
-        vec: Vec3(1.0, 0.0, 0.0),
+        vec: Vec3(0.8, 0.8, 0.0),
     },
 };
-const MATERIAL_B: RandomInSphere = RandomInSphere {
+const CENTER_MATERIAL: Lambertian = Lambertian {
     color: &Color {
-        vec: Vec3(0.0, 1.0, 0.0),
+        vec: Vec3(0.7, 0.3, 0.3),
+    },
+};
+const LEFT_MATERIAL: Metal = Metal {
+    color: &Color {
+        vec: Vec3(0.8, 0.8, 1.0),
+    },
+};
+const RIGHT_MATERIAL: Metal = Metal {
+    color: &Color {
+        vec: Vec3(0.8, 0.6, 0.2),
     },
 };
 
@@ -64,19 +74,34 @@ fn display_done() {
 fn create_world<'a>() -> HittableList {
     let mut world = HittableList::new();
 
-    let sphere1_radius = 0.5;
+    let ball_radius = 0.5;
+    let ground_radius = 100.0;
+
+    // ground
     world.add(Box::new(ObjectSphere::new(
-        sphere1_radius,
-        Vec3(0.0, 0.0, -1.0),
-        &MATERIAL_A,
+        ground_radius,
+        Vec3(0.0, -ground_radius - ball_radius, -1.0),
+        &GROUND_MATERIAL,
     )));
 
-    let sphere2_radius = 100.0;
     world.add(Box::new(ObjectSphere::new(
-        sphere2_radius,
-        Vec3(0.0, -sphere2_radius - sphere1_radius, -1.0),
-        &MATERIAL_B,
+        ball_radius,
+        Vec3(0.0, 0.0, -1.0),
+        &CENTER_MATERIAL,
     )));
+
+    world.add(Box::new(ObjectSphere::new(
+        ball_radius,
+        Vec3(-1.0, 0.0, -1.0),
+        &LEFT_MATERIAL,
+    )));
+
+    world.add(Box::new(ObjectSphere::new(
+        ball_radius,
+        Vec3(1.0, 0.0, -1.0),
+        &RIGHT_MATERIAL,
+    )));
+
     world
 }
 
@@ -124,12 +149,7 @@ fn main() {
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
                     let ray = camera.get_ray(x_level, y_level);
-                    pixel.add_color(color_by_diffuse_reflection(
-                        camera.viewport_height,
-                        ray,
-                        &world,
-                        MAX_DEPTH,
-                    ));
+                    pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
                 }
                 pixel.get_color()
             };
@@ -158,22 +178,15 @@ fn color_by_normal(normal: Vec3) -> Color {
     Color::new(r, g, b)
 }
 
-fn color_by_diffuse_reflection(
-    viewport_height: f64,
-    ray: Ray,
-    world: &HittableList,
-    depth: u32,
-) -> Color {
+fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -> Color {
     if let Some(hit) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY) {
         if depth == 0 {
             return Color::black();
         }
-        let scattered_ray = hit.material.scatter(&hit);
-        let reflected_ray = scattered_ray.scattered_ray;
-        let scattered_ray_color =
-            color_by_diffuse_reflection(viewport_height, reflected_ray, world, depth - 1);
-        let v = &scattered_ray.material_color.vec;
-        Color::from_vec(scattered_ray_color.vec * v)
+        let scatter_result = hit.material.scatter(&hit);
+        let scattered_ray = scatter_result.scattered_ray;
+        let scattered_ray_color = color_ray(viewport_height, scattered_ray, world, depth - 1);
+        Color::from_vec(scattered_ray_color.vec * scatter_result.material_color.vec)
     } else {
         background(viewport_height, ray)
     }
