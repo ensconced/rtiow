@@ -19,7 +19,7 @@ impl GeometricSphere {
         (point - self.center).unit_vector()
     }
 
-    pub fn random_point(&self) -> Vec3 {
+    pub fn random_point_in(&self) -> Vec3 {
         loop {
             let vec = Vec3::random_from_range(Range::new(-self.radius, self.radius));
             if vec.length_squared() < self.radius.powi(2) {
@@ -31,7 +31,7 @@ impl GeometricSphere {
     pub fn random_point_in_hemisphere(&self, normal: Vec3) -> Vec3 {
         let mut point;
         loop {
-            point = self.random_point();
+            point = self.random_point_in();
             if point.dot(normal) > 0.0 {
                 break;
             }

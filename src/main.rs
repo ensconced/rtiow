@@ -13,7 +13,7 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::{Hemispherical, Lambertian, Metal, RandomInSphere};
+use material::{Dielectric, Hemispherical, Lambertian, Metal, RandomInSphere};
 use pixel::Pixel;
 use rand::random;
 use ray::Ray;
@@ -25,7 +25,7 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 1000;
+const IMAGE_WIDTH: u32 = 400;
 
 const GROUND_MATERIAL: Lambertian = Lambertian {
     color: &Color {
@@ -34,18 +34,20 @@ const GROUND_MATERIAL: Lambertian = Lambertian {
 };
 const CENTER_MATERIAL: Lambertian = Lambertian {
     color: &Color {
-        vec: Vec3(0.7, 0.3, 0.3),
+        vec: Vec3(0.1, 0.2, 0.5),
     },
 };
-const LEFT_MATERIAL: Metal = Metal {
+const LEFT_MATERIAL: Dielectric = Dielectric {
     color: &Color {
-        vec: Vec3(0.8, 0.8, 1.0),
+        vec: Vec3(1.0, 1.0, 1.0),
     },
+    refractive_index: 1.5,
 };
 const RIGHT_MATERIAL: Metal = Metal {
     color: &Color {
         vec: Vec3(0.8, 0.6, 0.2),
     },
+    fuzz: 0.0,
 };
 
 enum DebugStrategy {

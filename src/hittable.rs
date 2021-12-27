@@ -4,6 +4,7 @@ use crate::vec3::Vec3;
 
 pub struct Hit<'a> {
     pub normal: Vec3,
+    pub front_face: bool,
     pub hit_point: Vec3,
     pub ray_t: f64,
     pub ray: &'a Ray,
@@ -28,6 +29,7 @@ impl<'a> Hit<'a> {
             -outwards_normal
         };
         Self {
+            front_face: ray_is_from_outside,
             ray,
             normal,
             ray_t,
