@@ -22,11 +22,13 @@ impl Camera {
     pub fn new(
         image_width: u32,
         image_aspect_ratio: f64,
-        viewport_height: f64,
+        vertical_fov_degrees: f64,
         focal_length: f64, // i.e. distance from "eye" to "image" in space
         origin: Vec3,
     ) -> Self {
         let image_height = (image_width as f64 / image_aspect_ratio) as u32;
+        let h = (vertical_fov_degrees.to_radians() / 2.0).tan();
+        let viewport_height = 2.0 * h;
         let viewport_width = viewport_height * image_aspect_ratio;
         let horizontal = Vec3(viewport_width, 0.0, 0.0);
         let vertical = Vec3(0.0, viewport_height, 0.0);
