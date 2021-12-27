@@ -68,6 +68,9 @@ impl Material for Hemispherical {
 impl Material for Metal {
     fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
         let reflected_ray_vector = hit.ray.vector.reflect(hit.normal);
+        if reflected_ray_vector.dot(hit.normal) < 0.0 {
+            return None;
+        }
         Some(ScatterResult {
             material_color: self.color,
             scattered_ray: Ray::new(hit.hit_point, reflected_ray_vector),
