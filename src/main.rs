@@ -183,10 +183,13 @@ fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -
         if depth == 0 {
             return Color::black();
         }
-        let scatter_result = hit.material.scatter(&hit);
-        let scattered_ray = scatter_result.scattered_ray;
-        let scattered_ray_color = color_ray(viewport_height, scattered_ray, world, depth - 1);
-        Color::from_vec(scattered_ray_color.vec * scatter_result.material_color.vec)
+        if let Some(scatter_result) = hit.material.scatter(&hit) {
+            let scattered_ray = scatter_result.scattered_ray;
+            let scattered_ray_color = color_ray(viewport_height, scattered_ray, world, depth - 1);
+            Color::from_vec(scattered_ray_color.vec * scatter_result.material_color.vec)
+        } else {
+            Color::black()
+        }
     } else {
         background(viewport_height, ray)
     }
