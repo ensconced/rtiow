@@ -4,6 +4,7 @@ use crate::ray::Ray;
 use crate::sphere::GeometricSphere;
 use crate::utils::Range;
 use crate::vec3::Vec3;
+use rand::{thread_rng, Rng};
 
 pub struct ScatterResult<'a> {
     pub material_color: &'a Color,
@@ -94,6 +95,13 @@ fn refract(incident_vector: Vec3, normal: Vec3, etai_over_etat: f64) -> Vec3 {
     return r_out_perp + r_out_parallel;
 }
 
+fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+    // Use Schlick's approximation for reflectance.
+    let r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    let r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
 impl Material for Dielectric {
     fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
         let refractive_index_ratio = if hit.front_face {
@@ -105,11 +113,13 @@ impl Material for Dielectric {
         let cos_theta = f64::min((-unit_direction).dot(hit.normal), 1.0);
         let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
         let cannot_refract = refractive_index_ratio * sin_theta > 1.0;
-        let direction = if cannot_refract {
-            unit_direction.reflect(hit.normal)
-        } else {
-            refract(unit_direction, hit.normal, refractive_index_ratio)
-        };
+        let mut rng = thread_rng();
+        let direction =
+            if cannot_refract || reflectance(cos_theta, refractive_index_ratio) > rng.gen() {
+                unit_direction.reflect(hit.normal)
+            } else {
+                refract(unit_direction, hit.normal, refractive_index_ratio)
+            };
         Some(ScatterResult {
             material_color: self.color,
             scattered_ray: Ray::new(hit.hit_point, direction),

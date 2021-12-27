@@ -93,7 +93,7 @@ fn create_world<'a>() -> HittableList {
     )));
 
     world.add(Box::new(ObjectSphere::new(
-        ball_radius,
+        0.5,
         Vec3(-1.0, 0.0, -1.0),
         &LEFT_MATERIAL,
     )));
