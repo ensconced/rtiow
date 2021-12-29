@@ -73,6 +73,16 @@ impl Vec3 {
         Self(rng.gen(), rng.gen(), rng.gen())
     }
 
+    pub fn random_in_unit_disk() -> Self {
+        let mut rng = thread_rng();
+        loop {
+            let v = Vec3(rng.gen(), rng.gen(), 0.0);
+            if v.length_squared() < 1.0 {
+                return v;
+            }
+        }
+    }
+
     pub fn random_from_range(range: Range) -> Self {
         let mut rng = thread_rng();
         let mut rand_in_range = || -> f64 { range.min + rng.gen::<f64>() * range.width() };

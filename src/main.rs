@@ -108,13 +108,21 @@ fn create_world<'a>() -> HittableList {
 }
 
 fn main() {
+    let look_from = Vec3(3.0, 3.0, 2.0);
+    let look_at = Vec3(0.0, 0.0, -1.0);
+    let view_up = Vec3(0.0, 1.0, 0.0);
+    let lens_radius = 1.0;
+    let focus_dist = (look_from - look_at).length();
+
     let camera = Camera::new(
         IMAGE_WIDTH,
         16.0 / 9.0,
         20.0,
-        Vec3(-2.0, 2.0, 1.0),
-        Vec3(0.0, 0.0, -1.0),
-        Vec3(0.0, 1.0, 0.0),
+        look_from,
+        look_at,
+        view_up,
+        lens_radius,
+        focus_dist,
     );
     let world = create_world();
 
