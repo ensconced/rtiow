@@ -25,7 +25,10 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 400;
+const IMAGE_WIDTH: u32 = 1000;
+const DEBUG_SETTING: Option<DebugStrategy> = None;
+const DISPLAY_PROGRESS: bool = true;
+const VERBOSE: bool = false;
 
 const GROUND_MATERIAL: Lambertian = Lambertian {
     color: &Color {
@@ -54,9 +57,6 @@ enum DebugStrategy {
     Normals,
     SingleColor,
 }
-
-const DEBUG_SETTING: Option<DebugStrategy> = None;
-const DISPLAY_PROGRESS: bool = true;
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -108,7 +108,14 @@ fn create_world<'a>() -> HittableList {
 }
 
 fn main() {
-    let camera = Camera::new(IMAGE_WIDTH, 16.0 / 9.0, 130.0, 1.0, Vec3(0.0, 0.0, 0.0));
+    let camera = Camera::new(
+        IMAGE_WIDTH,
+        16.0 / 9.0,
+        80.0,
+        Vec3(-2.0, 2.0, 1.0),
+        Vec3(0.0, 0.0, -1.0),
+        Vec3(0.0, 1.0, 0.0),
+    );
     let world = create_world();
 
     println!("P3"); // means this is an RGB color image in ASCII
@@ -129,7 +136,7 @@ fn main() {
                 DebugStrategy::SingleColor => Color::red(),
             }
         } else {
-            background(camera.viewport_height, ray)
+            background(ray)
         }
     };
 
@@ -139,17 +146,24 @@ fn main() {
         }
 
         for col in 0..camera.image_width {
+            if VERBOSE {
+                eprintln!("ROW {} COL {}", row, col);
+            }
             let pixel_color = if let Some(debug_setting) = DEBUG_SETTING {
                 debug_color(debug_setting, col, row)
             } else {
                 let mut pixel = Pixel::new();
-                for _ in 0..SAMPLES_PER_PIXEL {
+
+                for i in 0..SAMPLES_PER_PIXEL {
                     let pixel_x: f64 = random();
                     let pixel_y: f64 = random();
                     let x_position = col as f64 + pixel_x;
                     let y_position = row as f64 + pixel_y;
                     let x_level = x_position / camera.image_width as f64;
                     let y_level = 1.0 - (y_position / camera.image_height as f64);
+                    if VERBOSE {
+                        eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
+                    }
                     let ray = camera.get_ray(x_level, y_level);
                     pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
                 }
@@ -163,36 +177,56 @@ fn main() {
     }
 }
 
-fn background(viewport_height: f64, ray: Ray) -> Color {
+fn background(ray: Ray) -> Color {
     let direction = ray.vector.unit_vector();
-    let vectors_y_range = Range::new(-viewport_height / 2.0, viewport_height / 2.0);
-    let new_range = Range::new(0.0, 1.0);
-    let upwardsness = remap(direction.y(), &vectors_y_range, &new_range);
+    let upwardsness = remap(direction.y(), Range::new(-1.0, 1.0), Range::new(0.0, 1.0));
+    if VERBOSE {
+        eprintln!("direction of {} ...", ray.vector);
+        eprintln!("is... {}", direction);
+        eprintln!("and upwardsness is {}", upwardsness);
+    }
     Color::from_vec(lerp(upwardsness, Color::white().vec, Color::sky_blue().vec))
 }
 
 fn color_by_normal(normal: Vec3) -> Color {
     let normal_component_range = Range::new(-1.0, 1.0);
     let new_range = Range::new(0.0, 1.0);
-    let r = remap(normal.0, &normal_component_range, &new_range);
-    let g = remap(normal.1, &normal_component_range, &new_range);
-    let b = remap(normal.2, &normal_component_range, &new_range);
+    let r = remap(normal.0, normal_component_range, new_range);
+    let g = remap(normal.1, normal_component_range, new_range);
+    let b = remap(normal.2, normal_component_range, new_range);
     Color::new(r, g, b)
 }
 
 fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -> Color {
+    if VERBOSE {
+        eprintln!("coloring ray {:?}", ray);
+        eprintln!("depth {}", depth);
+    }
     if let Some(hit) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY) {
         if depth == 0 {
+            if VERBOSE {
+                eprintln!("hit depth limit: black");
+            }
             return Color::black();
         }
         if let Some(scatter_result) = hit.material.scatter(&hit) {
             let scattered_ray = scatter_result.scattered_ray;
             let scattered_ray_color = color_ray(viewport_height, scattered_ray, world, depth - 1);
+            if VERBOSE {
+                eprintln!("scattered");
+            }
             Color::from_vec(scattered_ray_color.vec * scatter_result.material_color.vec)
         } else {
+            if VERBOSE {
+                eprintln!("black");
+            }
             Color::black()
         }
     } else {
-        background(viewport_height, ray)
+        let bg = background(ray);
+        if VERBOSE {
+            eprintln!("background: {}", bg);
+        }
+        bg
     }
 }

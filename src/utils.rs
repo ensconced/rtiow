@@ -1,4 +1,6 @@
 use std::ops;
+
+#[derive(Copy, Clone)]
 pub struct Range {
     pub min: f64,
     pub max: f64,
@@ -14,7 +16,7 @@ impl Range {
 }
 
 // re-maps a number from one range to another
-pub fn remap(value: f64, original_range: &Range, new_range: &Range) -> f64 {
+pub fn remap(value: f64, original_range: Range, new_range: Range) -> f64 {
     let original_width = original_range.width();
     if original_width == 0.0 {
         return new_range.min;

@@ -232,6 +232,12 @@ mod tests {
     }
 
     #[test]
+    fn can_get_unit_vector_for_small_vec() {
+        let v1 = Vec3(0.0, 0.02, 0.0);
+        assert_eq!(v1.unit_vector(), Vec3(0.0, 1.0, 0.0));
+    }
+
+    #[test]
     fn can_display_a_vector() {
         let v1 = Vec3(1.1, 2.2, 3.3);
         let string = format!("{}", v1);

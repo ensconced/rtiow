@@ -1,12 +1,7 @@
+use crate::utils::clamp;
+use crate::vec3::Vec3;
 use std::fmt;
 
-use crate::utils::clamp;
-
-use crate::vec3::Vec3;
-#[allow(unused_imports)]
-use rand::random;
-
-#[derive(Debug)]
 pub struct Color {
     pub vec: Vec3,
 }
@@ -77,15 +72,5 @@ impl fmt::Display for Color {
             scale_color(self.g()),
             scale_color(self.b())
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn can_display_color() {
-        assert_eq!(format!("{}", Color::new(0.0, 0.5, 1.0)), "0 127 255\n");
     }
 }
