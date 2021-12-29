@@ -111,7 +111,7 @@ fn main() {
     let camera = Camera::new(
         IMAGE_WIDTH,
         16.0 / 9.0,
-        80.0,
+        20.0,
         Vec3(-2.0, 2.0, 1.0),
         Vec3(0.0, 0.0, -1.0),
         Vec3(0.0, 1.0, 0.0),
