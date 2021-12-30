@@ -23,7 +23,7 @@ use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 100;
+const SAMPLES_PER_PIXEL: u32 = 500;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 const IMAGE_WIDTH: u32 = 1000;
 const DEBUG_SETTING: Option<DebugStrategy> = None;
@@ -111,7 +111,7 @@ fn main() {
     let look_from = Vec3(3.0, 3.0, 2.0);
     let look_at = Vec3(0.0, 0.0, -1.0);
     let view_up = Vec3(0.0, 1.0, 0.0);
-    let lens_radius = 1.0;
+    let lens_radius = 0.5;
     let focus_dist = (look_from - look_at).length();
 
     let camera = Camera::new(
