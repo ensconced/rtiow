@@ -24,9 +24,9 @@ use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 100;
+const SAMPLES_PER_PIXEL: u32 = 1;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 100;
+const IMAGE_WIDTH: u32 = 10;
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
@@ -84,8 +84,6 @@ fn main() {
         }
     }
 
-    let ground_radius = 100.0;
-
     let look_from = Vec3(13.0, 2.0, 3.0);
     let look_at = Vec3(0.0, 0.0, 0.0);
     let view_up = Vec3(0.0, 1.0, 0.0);
@@ -108,7 +106,7 @@ fn main() {
     // ground
     world.add(Box::new(ObjectSphere::new(
         1000.0,
-        Vec3(0.0, -ground_radius, 0.0),
+        Vec3(0.0, -1000.0, 0.0),
         Rc::new(ground_material),
     )));
 
