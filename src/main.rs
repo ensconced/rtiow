@@ -65,23 +65,41 @@ fn main() {
                 (b as f64) + 0.9 * random::<f64>(),
             );
             if (center - Vec3(4.0, 0.2, 0.0)).length() > 0.9 {
-                let sphere_object = if choose_material < 0.8 {
+                let sphere_obj = if choose_material < 0.8 {
                     // diffuse
                     let sphere_material = Lambertian::new(Vec3::random() * Vec3::random());
-                    ObjectSphere::new(0.2, center, &sphere_material)
+                    ObjectSphere {
+                        geometry: sphere::GeometricSphere {
+                            radius: 0.2,
+                            center,
+                        },
+                        material: Box::new(sphere_material),
+                    }
                 } else if choose_material < 0.95 {
                     // metal
                     let albedo = Vec3::random().remap(Range::new(0.0, 1.0), Range::new(0.5, 1.0));
                     let mut rng = rand::thread_rng();
                     let fuzz = rng.gen_range(0.0..0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
-                    ObjectSphere::new(0.2, center, &sphere_material)
+                    ObjectSphere {
+                        geometry: sphere::GeometricSphere {
+                            radius: 0.2,
+                            center,
+                        },
+                        material: Box::new(sphere_material),
+                    }
                 } else {
                     // glass
                     let sphere_material = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
-                    ObjectSphere::new(0.2, center, &sphere_material)
+                    ObjectSphere {
+                        geometry: sphere::GeometricSphere {
+                            radius: 0.2,
+                            center,
+                        },
+                        material: Box::new(sphere_material),
+                    }
                 };
-                world.add(Box::new(sphere_object));
+                world.add(Box::new(sphere_obj));
             }
         }
     }
@@ -107,11 +125,13 @@ fn main() {
     );
 
     // ground
-    world.add(Box::new(ObjectSphere::new(
-        ground_radius,
-        Vec3(0.0, -ground_radius - ball_radius, -1.0),
-        &ground_material,
-    )));
+    world.add(Box::new(ObjectSphere {
+        material: Box::new(ground_material),
+        geometry: sphere::GeometricSphere {
+            radius: ground_radius,
+            center: Vec3(0.0, -ground_radius - ball_radius, -1.0),
+        },
+    }));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
