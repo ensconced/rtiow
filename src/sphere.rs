@@ -9,9 +9,9 @@ pub struct GeometricSphere {
     pub center: Vec3,
 }
 
-pub struct ObjectSphere {
+pub struct ObjectSphere<'a> {
     geometry: GeometricSphere,
-    material: &'static dyn Material,
+    material: &'a dyn Material,
 }
 
 impl GeometricSphere {
@@ -51,8 +51,8 @@ impl GeometricSphere {
     }
 }
 
-impl ObjectSphere {
-    pub fn new(radius: f64, center: Vec3, material: &'static dyn Material) -> Self {
+impl<'a> ObjectSphere<'a> {
+    pub fn new(radius: f64, center: Vec3, material: &'a dyn Material) -> Self {
         Self {
             geometry: GeometricSphere { radius, center },
             material,
@@ -60,8 +60,8 @@ impl ObjectSphere {
     }
 }
 
-impl Hittable for ObjectSphere {
-    fn hit<'a>(&self, ray: &'a Ray, t_min: f64, t_max: f64) -> Option<Hit<'a>> {
+impl<'a> Hittable for ObjectSphere<'a> {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let center_to_ray_origin = ray.origin - self.geometry.center;
         // a, b, c as in the quadratic formula
         let a = ray.vector.dot(ray.vector);

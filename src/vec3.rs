@@ -1,5 +1,5 @@
-use crate::utils::Range;
-use rand::{thread_rng, Rng};
+use crate::utils::{remap, Range};
+use rand::random;
 use std::{fmt, ops};
 
 #[derive(Debug, Copy, Clone)]
@@ -69,23 +69,28 @@ impl ops::DivAssign<f64> for Vec3 {
 
 impl Vec3 {
     pub fn random() -> Self {
-        let mut rng = thread_rng();
-        Self(rng.gen(), rng.gen(), rng.gen())
+        Self(random(), random(), random())
     }
 
     pub fn random_in_unit_disk() -> Self {
-        let mut rng = thread_rng();
         loop {
-            let v = Vec3(rng.gen(), rng.gen(), 0.0);
+            let v = Vec3(random(), random(), 0.0);
             if v.length_squared() < 1.0 {
                 return v;
             }
         }
     }
 
+    pub fn remap(&self, original_range: Range, new_range: Range) -> Self {
+        Self(
+            remap(self.0, original_range, new_range),
+            remap(self.1, original_range, new_range),
+            remap(self.2, original_range, new_range),
+        )
+    }
+
     pub fn random_from_range(range: Range) -> Self {
-        let mut rng = thread_rng();
-        let mut rand_in_range = || -> f64 { range.min + rng.gen::<f64>() * range.width() };
+        let rand_in_range = || -> f64 { range.min + random::<f64>() * range.width() };
         Self(rand_in_range(), rand_in_range(), rand_in_range())
     }
 

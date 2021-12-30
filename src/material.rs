@@ -4,41 +4,67 @@ use crate::ray::Ray;
 use crate::sphere::GeometricSphere;
 use crate::utils::Range;
 use crate::vec3::Vec3;
-use rand::{thread_rng, Rng};
+use rand::random;
 
-pub struct ScatterResult<'a> {
-    pub material_color: &'a Color,
+pub struct ScatterResult {
+    pub material_color: Color,
     pub scattered_ray: Ray,
 }
 
 pub trait Material {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>>;
+    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult>;
 }
 
 pub struct Lambertian {
-    pub color: &'static Color,
+    pub color: Color,
+}
+
+impl Lambertian {
+    pub fn new(color_vec: Vec3) -> Self {
+        Self {
+            color: Color::from_vec(color_vec),
+        }
+    }
 }
 
 pub struct RandomInSphere {
-    pub color: &'static Color,
+    pub color: Color,
 }
 
 pub struct Hemispherical {
-    pub color: &'static Color,
+    pub color: Color,
 }
 
 pub struct Metal {
-    pub color: &'static Color,
+    pub color: Color,
     pub fuzz: f64,
 }
 
+impl Metal {
+    pub fn new(color_vec: Vec3, fuzz: f64) -> Self {
+        Self {
+            color: Color::from_vec(color_vec),
+            fuzz,
+        }
+    }
+}
+
 pub struct Dielectric {
-    pub color: &'static Color,
+    pub color: Color,
     pub refractive_index: f64,
 }
 
+impl Dielectric {
+    pub fn new(color_vec: Vec3, refractive_index: f64) -> Self {
+        Self {
+            color: Color::from_vec(color_vec),
+            refractive_index,
+        }
+    }
+}
+
 impl Material for Lambertian {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
         let reflection_vector = Vec3::random_from_range(Range::new(-1.0, 1.0));
         Some(ScatterResult {
             material_color: self.color,
@@ -48,7 +74,7 @@ impl Material for Lambertian {
 }
 
 impl Material for RandomInSphere {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
         let reflection_vector = GeometricSphere::unit().random_point_in();
         let mut scatter_direction = hit.normal + reflection_vector;
         // catch degenerate scatter direction
@@ -63,7 +89,7 @@ impl Material for RandomInSphere {
 }
 
 impl Material for Hemispherical {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
         let reflection_vector = GeometricSphere::unit().random_point_in_hemisphere(hit.normal);
         Some(ScatterResult {
             material_color: self.color,
@@ -73,7 +99,7 @@ impl Material for Hemispherical {
 }
 
 impl Material for Metal {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
         let reflected_ray_vector = hit.ray.vector.unit_vector().reflect(hit.normal);
         let fuzz = GeometricSphere::unit().random_point_in() * self.fuzz;
         let vector = reflected_ray_vector + fuzz;
@@ -103,7 +129,7 @@ fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
 }
 
 impl Material for Dielectric {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult<'b>> {
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
         let refractive_index_ratio = if hit.front_face {
             1.0 / self.refractive_index
         } else {
@@ -113,9 +139,8 @@ impl Material for Dielectric {
         let cos_theta = f64::min((-unit_direction).dot(hit.normal), 1.0);
         let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
         let cannot_refract = refractive_index_ratio * sin_theta > 1.0;
-        let mut rng = thread_rng();
         let direction =
-            if cannot_refract || reflectance(cos_theta, refractive_index_ratio) > rng.gen() {
+            if cannot_refract || reflectance(cos_theta, refractive_index_ratio) > random() {
                 unit_direction.reflect(hit.normal)
             } else {
                 refract(unit_direction, hit.normal, refractive_index_ratio)

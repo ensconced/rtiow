@@ -7,17 +7,17 @@ pub struct Hit<'a> {
     pub front_face: bool,
     pub hit_point: Vec3,
     pub ray_t: f64,
-    pub ray: &'a Ray,
-    pub material: &'static dyn Material,
+    pub ray: Ray,
+    pub material: &'a dyn Material,
 }
 
 impl<'a> Hit<'a> {
     pub fn new(
         outwards_normal: Vec3,
         hit_point: Vec3,
-        ray: &'a Ray,
+        ray: Ray,
         ray_t: f64,
-        material: &'static dyn Material,
+        material: &'a dyn Material,
     ) -> Self {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from
@@ -40,6 +40,6 @@ impl<'a> Hit<'a> {
 }
 
 pub trait Hittable {
-    fn hit<'a>(&self, ray: &'a Ray, t_min: f64, t_max: f64) -> Option<Hit<'a>>;
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit>;
     fn get_material(&self) -> &dyn Material;
 }

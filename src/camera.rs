@@ -10,7 +10,6 @@ pub struct Camera {
     lens_radius: f64,
     u: Vec3,
     v: Vec3,
-    w: Vec3,
     pub image_height: u32,
     pub image_width: u32,
     pub viewport_height: f64,
@@ -56,7 +55,6 @@ impl Camera {
         Self {
             u,
             v,
-            w,
             horizontal,
             vertical,
             image_bottom_left,

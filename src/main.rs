@@ -13,45 +13,23 @@ use camera::Camera;
 use color::Color;
 use hittable::Hit;
 use hittable_list::HittableList;
-use material::{Dielectric, Hemispherical, Lambertian, Metal, RandomInSphere};
+use material::{Dielectric, Hemispherical, Lambertian, Material, Metal, RandomInSphere};
 use pixel::Pixel;
-use rand::random;
+use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
+use std::mem;
 use utils::*;
 use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 500;
+const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 const IMAGE_WIDTH: u32 = 1000;
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
-
-const GROUND_MATERIAL: Lambertian = Lambertian {
-    color: &Color {
-        vec: Vec3(0.8, 0.8, 0.0),
-    },
-};
-const CENTER_MATERIAL: Lambertian = Lambertian {
-    color: &Color {
-        vec: Vec3(0.1, 0.2, 0.5),
-    },
-};
-const LEFT_MATERIAL: Dielectric = Dielectric {
-    color: &Color {
-        vec: Vec3(1.0, 1.0, 1.0),
-    },
-    refractive_index: 1.5,
-};
-const RIGHT_MATERIAL: Metal = Metal {
-    color: &Color {
-        vec: Vec3(0.8, 0.6, 0.2),
-    },
-    fuzz: 0.0,
-};
 
 enum DebugStrategy {
     Normals,
@@ -73,45 +51,48 @@ fn display_done() {
     eprintln!("Done");
 }
 
-fn create_world<'a>() -> HittableList {
+fn main() {
+    let ground_material = Lambertian::new(Vec3(0.5, 0.5, 0.0));
+
     let mut world = HittableList::new();
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_material: f64 = random();
+            let center = Vec3(
+                (a as f64) + 0.9 * random::<f64>(),
+                0.2,
+                (b as f64) + 0.9 * random::<f64>(),
+            );
+            if (center - Vec3(4.0, 0.2, 0.0)).length() > 0.9 {
+                let sphere_object = if choose_material < 0.8 {
+                    // diffuse
+                    let sphere_material = Lambertian::new(Vec3::random() * Vec3::random());
+                    ObjectSphere::new(0.2, center, &sphere_material)
+                } else if choose_material < 0.95 {
+                    // metal
+                    let albedo = Vec3::random().remap(Range::new(0.0, 1.0), Range::new(0.5, 1.0));
+                    let mut rng = rand::thread_rng();
+                    let fuzz = rng.gen_range(0.0..0.5);
+                    let sphere_material = Metal::new(albedo, fuzz);
+                    ObjectSphere::new(0.2, center, &sphere_material)
+                } else {
+                    // glass
+                    let sphere_material = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
+                    ObjectSphere::new(0.2, center, &sphere_material)
+                };
+                world.add(Box::new(sphere_object));
+            }
+        }
+    }
 
     let ball_radius = 0.5;
     let ground_radius = 100.0;
 
-    // ground
-    world.add(Box::new(ObjectSphere::new(
-        ground_radius,
-        Vec3(0.0, -ground_radius - ball_radius, -1.0),
-        &GROUND_MATERIAL,
-    )));
-
-    world.add(Box::new(ObjectSphere::new(
-        ball_radius,
-        Vec3(0.0, 0.0, -1.0),
-        &CENTER_MATERIAL,
-    )));
-
-    world.add(Box::new(ObjectSphere::new(
-        0.5,
-        Vec3(-1.0, 0.0, -1.0),
-        &LEFT_MATERIAL,
-    )));
-
-    world.add(Box::new(ObjectSphere::new(
-        ball_radius,
-        Vec3(1.0, 0.0, -1.0),
-        &RIGHT_MATERIAL,
-    )));
-
-    world
-}
-
-fn main() {
     let look_from = Vec3(3.0, 3.0, 2.0);
     let look_at = Vec3(0.0, 0.0, -1.0);
     let view_up = Vec3(0.0, 1.0, 0.0);
-    let lens_radius = 0.5;
+    let lens_radius = 1.0;
     let focus_dist = (look_from - look_at).length();
 
     let camera = Camera::new(
@@ -124,7 +105,13 @@ fn main() {
         lens_radius,
         focus_dist,
     );
-    let world = create_world();
+
+    // ground
+    world.add(Box::new(ObjectSphere::new(
+        ground_radius,
+        Vec3(0.0, -ground_radius - ball_radius, -1.0),
+        &ground_material,
+    )));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);
@@ -137,7 +124,7 @@ fn main() {
         let y_level = 1.0 - (y_position / camera.image_height as f64);
         let ray = camera.get_ray(x_level, y_level);
 
-        if let Some(Hit { normal, .. }) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
+        if let Some(Hit { normal, .. }) = world.hit(ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
         {
             match debug_setting {
                 DebugStrategy::Normals => color_by_normal(normal),
@@ -183,6 +170,7 @@ fn main() {
     if DISPLAY_PROGRESS {
         display_done();
     }
+    mem::drop(world);
 }
 
 fn background(ray: Ray) -> Color {
@@ -210,7 +198,7 @@ fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -
         eprintln!("coloring ray {:?}", ray);
         eprintln!("depth {}", depth);
     }
-    if let Some(hit) = world.hit(&ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY) {
+    if let Some(hit) = world.hit(ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY) {
         if depth == 0 {
             if VERBOSE {
                 eprintln!("hit depth limit: black");

@@ -3,18 +3,18 @@ use crate::hittable::Hittable;
 use crate::hittable::Hit;
 use crate::ray::Ray;
 
-type HittableElement = Box<dyn Hittable>;
-pub struct HittableList(Vec<HittableElement>);
+type HittableElement<'a> = Box<dyn Hittable + 'a>;
+pub struct HittableList<'a>(Vec<HittableElement<'a>>);
 
-impl HittableList {
+impl<'a> HittableList<'a> {
     #[allow(dead_code)]
     fn clear(&mut self) {
         self.0.clear();
     }
-    pub fn add(&mut self, obj: HittableElement) {
+    pub fn add(&mut self, obj: HittableElement<'a>) {
         self.0.push(obj);
     }
-    pub fn hit<'a>(&self, ray: &'a Ray, t_min: f64, t_max: f64) -> Option<Hit<'a>> {
+    pub fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let mut closest_hit = None;
         for hittable in self.0.iter() {
             let closest_so_far = if let Some(Hit { ray_t, .. }) = closest_hit {

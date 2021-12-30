@@ -2,6 +2,7 @@ use crate::utils::clamp;
 use crate::vec3::Vec3;
 use std::fmt;
 
+#[derive(Clone, Copy)]
 pub struct Color {
     pub vec: Vec3,
 }
