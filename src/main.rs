@@ -79,7 +79,7 @@ fn main() {
                     let sphere_material = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
                     ObjectSphere::new(0.2, center, Rc::new(sphere_material))
                 };
-                world.add(Rc::new(sphere_obj));
+                world.add(Box::new(sphere_obj));
             }
         }
     }
@@ -106,7 +106,7 @@ fn main() {
     let ground_material = Lambertian::new(Vec3(0.5, 0.5, 0.5));
 
     // ground
-    world.add(Rc::new(ObjectSphere::new(
+    world.add(Box::new(ObjectSphere::new(
         1000.0,
         Vec3(0.0, -ground_radius, 0.0),
         Rc::new(ground_material),
@@ -114,7 +114,7 @@ fn main() {
 
     let material_1 = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
 
-    world.add(Rc::new(ObjectSphere::new(
+    world.add(Box::new(ObjectSphere::new(
         1.0,
         Vec3(0.0, 1.0, 0.0),
         Rc::new(material_1),
@@ -122,7 +122,7 @@ fn main() {
 
     let material_2 = Lambertian::new(Vec3(0.4, 0.2, 0.1));
 
-    world.add(Rc::new(ObjectSphere::new(
+    world.add(Box::new(ObjectSphere::new(
         1.0,
         Vec3(-4.0, 1.0, 0.0),
         Rc::new(material_2),
@@ -130,7 +130,7 @@ fn main() {
 
     let material_3 = Metal::new(Vec3(0.7, 0.6, 0.5), 0.0);
 
-    world.add(Rc::new(ObjectSphere::new(
+    world.add(Box::new(ObjectSphere::new(
         1.0,
         Vec3(4.0, 1.0, 0.0),
         Rc::new(material_3),
