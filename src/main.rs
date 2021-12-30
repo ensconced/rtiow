@@ -18,7 +18,7 @@ use pixel::Pixel;
 use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
-use std::mem;
+use std::{mem, rc::Rc};
 use utils::*;
 use vec3::Vec3;
 
@@ -26,7 +26,7 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 100;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 1000;
+const IMAGE_WIDTH: u32 = 100;
 const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
@@ -52,8 +52,6 @@ fn display_done() {
 }
 
 fn main() {
-    let ground_material = Lambertian::new(Vec3(0.5, 0.5, 0.0));
-
     let mut world = HittableList::new();
 
     for a in -11..11 {
@@ -68,55 +66,36 @@ fn main() {
                 let sphere_obj = if choose_material < 0.8 {
                     // diffuse
                     let sphere_material = Lambertian::new(Vec3::random() * Vec3::random());
-                    ObjectSphere {
-                        geometry: sphere::GeometricSphere {
-                            radius: 0.2,
-                            center,
-                        },
-                        material: Box::new(sphere_material),
-                    }
+                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
                 } else if choose_material < 0.95 {
                     // metal
                     let albedo = Vec3::random().remap(Range::new(0.0, 1.0), Range::new(0.5, 1.0));
                     let mut rng = rand::thread_rng();
                     let fuzz = rng.gen_range(0.0..0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
-                    ObjectSphere {
-                        geometry: sphere::GeometricSphere {
-                            radius: 0.2,
-                            center,
-                        },
-                        material: Box::new(sphere_material),
-                    }
+                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
                 } else {
                     // glass
                     let sphere_material = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
-                    ObjectSphere {
-                        geometry: sphere::GeometricSphere {
-                            radius: 0.2,
-                            center,
-                        },
-                        material: Box::new(sphere_material),
-                    }
+                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
                 };
-                world.add(Box::new(sphere_obj));
+                world.add(Rc::new(sphere_obj));
             }
         }
     }
 
-    let ball_radius = 0.5;
     let ground_radius = 100.0;
 
-    let look_from = Vec3(3.0, 3.0, 2.0);
-    let look_at = Vec3(0.0, 0.0, -1.0);
+    let look_from = Vec3(13.0, 2.0, 3.0);
+    let look_at = Vec3(0.0, 0.0, 0.0);
     let view_up = Vec3(0.0, 1.0, 0.0);
-    let lens_radius = 1.0;
-    let focus_dist = (look_from - look_at).length();
+    let lens_radius = 0.05;
+    let focus_dist = 10.0;
 
     let camera = Camera::new(
         IMAGE_WIDTH,
-        16.0 / 9.0,
-        20.0,
+        3.0 / 2.0,
+        80.0,
         look_from,
         look_at,
         view_up,
@@ -124,14 +103,38 @@ fn main() {
         focus_dist,
     );
 
+    let ground_material = Lambertian::new(Vec3(0.5, 0.5, 0.5));
+
     // ground
-    world.add(Box::new(ObjectSphere {
-        material: Box::new(ground_material),
-        geometry: sphere::GeometricSphere {
-            radius: ground_radius,
-            center: Vec3(0.0, -ground_radius - ball_radius, -1.0),
-        },
-    }));
+    world.add(Rc::new(ObjectSphere::new(
+        1000.0,
+        Vec3(0.0, -ground_radius, 0.0),
+        Rc::new(ground_material),
+    )));
+
+    let material_1 = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
+
+    world.add(Rc::new(ObjectSphere::new(
+        1.0,
+        Vec3(0.0, 1.0, 0.0),
+        Rc::new(material_1),
+    )));
+
+    let material_2 = Lambertian::new(Vec3(0.4, 0.2, 0.1));
+
+    world.add(Rc::new(ObjectSphere::new(
+        1.0,
+        Vec3(-4.0, 1.0, 0.0),
+        Rc::new(material_2),
+    )));
+
+    let material_3 = Metal::new(Vec3(0.7, 0.6, 0.5), 0.0);
+
+    world.add(Rc::new(ObjectSphere::new(
+        1.0,
+        Vec3(4.0, 1.0, 0.0),
+        Rc::new(material_3),
+    )));
 
     println!("P3"); // means this is an RGB color image in ASCII
     println!("{} {}", camera.image_width, camera.image_height);

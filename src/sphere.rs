@@ -3,6 +3,7 @@ use crate::material::Material;
 use crate::ray::Ray;
 use crate::utils::Range;
 use crate::vec3::Vec3;
+use std::rc::Rc;
 
 pub struct GeometricSphere {
     pub radius: f64,
@@ -11,7 +12,7 @@ pub struct GeometricSphere {
 
 pub struct ObjectSphere {
     geometry: GeometricSphere,
-    material: Box<dyn Material>,
+    material: Rc<dyn Material>,
 }
 
 impl GeometricSphere {
@@ -51,6 +52,15 @@ impl GeometricSphere {
     }
 }
 
+impl ObjectSphere {
+    pub fn new(radius: f64, center: Vec3, material: Rc<dyn Material>) -> Self {
+        Self {
+            geometry: GeometricSphere { radius, center },
+            material: material,
+        }
+    }
+}
+
 impl<'a> Hittable for ObjectSphere {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let center_to_ray_origin = ray.origin - self.geometry.center;
@@ -82,11 +92,8 @@ impl<'a> Hittable for ObjectSphere {
             hit_point,
             ray,
             root,
-            self.material,
+            Rc::clone(&self.material),
         ))
-    }
-    fn get_material(&self) -> &dyn Material {
-        self.material
     }
 }
 

@@ -1,9 +1,9 @@
-use crate::hittable::Hittable;
-
 use crate::hittable::Hit;
+use crate::hittable::Hittable;
 use crate::ray::Ray;
+use std::rc::Rc;
 
-type HittableElement<'a> = Box<dyn Hittable + 'a>;
+type HittableElement<'a> = Rc<dyn Hittable + 'a>;
 pub struct HittableList<'a>(Vec<HittableElement<'a>>);
 
 impl<'a> HittableList<'a> {
