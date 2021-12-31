@@ -19,7 +19,7 @@ use pixel::Pixel;
 use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
-use std::{mem, ops::Range, rc::Rc, time::Instant};
+use std::{mem, ops::Range, rc::Rc, thread, time::Instant};
 use utils::*;
 use vec3::Vec3;
 
@@ -207,8 +207,12 @@ fn main() {
     }
     threads[thread_count as usize - 1].rows.end = camera.image_height;
 
-    for thread in threads.iter_mut() {
-        for row in thread.rows.start..thread.rows.end {
+    let mut join_handles = Vec::new();
+    for some_thread in threads.iter_mut() {
+        let join_handle = thread::spawn(|| {});
+        join_handles.push(join_handle);
+
+        for row in some_thread.rows.start..some_thread.rows.end {
             // TODO - report progress via inter-thread messaging...
             // if DISPLAY_PROGRESS {
             //     display_progress(camera.image_height, row, start_time);
@@ -238,13 +242,13 @@ fn main() {
                     }
                     pixel.get_color()
                 };
-                thread.output.push_str(&format!("{}\n", pixel_color))
+                some_thread.output.push_str(&format!("{}\n", pixel_color))
             }
         }
     }
 
-    for thread in threads {
-        print!("{}", thread.output);
+    for some_thread in threads {
+        print!("{}", some_thread.output);
     }
 
     if DISPLAY_PROGRESS {
