@@ -1,16 +1,15 @@
 use crate::hittable::Hit;
-use crate::hittable::Hittable;
 use crate::ray::Ray;
+use crate::sphere::ObjectSphere;
 
-type HittableElement<'a> = Box<dyn Hittable + 'a>;
-pub struct HittableList<'a>(Vec<HittableElement<'a>>);
+pub struct HittableList(Vec<ObjectSphere>);
 
-impl<'a> HittableList<'a> {
+impl HittableList {
     #[allow(dead_code)]
     fn clear(&mut self) {
         self.0.clear();
     }
-    pub fn add(&mut self, obj: HittableElement<'a>) {
+    pub fn add(&mut self, obj: ObjectSphere) {
         self.0.push(obj);
     }
     pub fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {

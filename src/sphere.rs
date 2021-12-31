@@ -1,4 +1,4 @@
-use crate::hittable::{Hit, Hittable};
+use crate::hittable::Hit;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -54,10 +54,7 @@ impl ObjectSphere {
             material: material,
         }
     }
-}
-
-impl<'a> Hittable for ObjectSphere {
-    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
+    pub fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<Hit> {
         let center_to_ray_origin = ray.origin - self.geometry.center;
         // a, b, c as in the quadratic formula
         let a = ray.vector.dot(ray.vector);
