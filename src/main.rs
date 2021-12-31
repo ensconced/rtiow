@@ -71,6 +71,46 @@ fn display_done() {
     eprintln!("Done");
 }
 
+fn run_thread(
+    thread_rows: &[u32],
+    camera: Camera,
+    start_time: Instant,
+    world: &HittableList,
+    result: &mut String,
+) {
+    for row in thread_rows[0]..=thread_rows[thread_rows.len() - 1] {
+        // TODO - report progress via inter-thread messaging...
+        if DISPLAY_PROGRESS {
+            display_progress(camera.image_height, row, start_time);
+        }
+
+        for col in 0..camera.image_width {
+            if VERBOSE {
+                eprintln!("ROW {} COL {}", row, col);
+            }
+            let pixel_color = {
+                let mut pixel = Pixel::new();
+
+                for i in 0..SAMPLES_PER_PIXEL {
+                    let pixel_x: f64 = random();
+                    let pixel_y: f64 = random();
+                    let x_position = col as f64 + pixel_x;
+                    let y_position = row as f64 + pixel_y;
+                    let x_level = x_position / camera.image_width as f64;
+                    let y_level = 1.0 - (y_position / camera.image_height as f64);
+                    if VERBOSE {
+                        eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
+                    }
+                    let ray = camera.get_ray(x_level, y_level);
+                    pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
+                }
+                pixel.get_color()
+            };
+            result.push_str(&format!("{}\n", pixel_color));
+        }
+    }
+}
+
 fn main() {
     let mut world = HittableList::new();
 
@@ -165,37 +205,7 @@ fn main() {
     let rows: Vec<u32> = (0..camera.image_height).collect();
     let mut result = String::new();
     for thread_rows in rows.chunks(rows_per_thread) {
-        for row in thread_rows[0]..=thread_rows[thread_rows.len() - 1] {
-            // TODO - report progress via inter-thread messaging...
-            if DISPLAY_PROGRESS {
-                display_progress(camera.image_height, row, start_time);
-            }
-
-            for col in 0..camera.image_width {
-                if VERBOSE {
-                    eprintln!("ROW {} COL {}", row, col);
-                }
-                let pixel_color = {
-                    let mut pixel = Pixel::new();
-
-                    for i in 0..SAMPLES_PER_PIXEL {
-                        let pixel_x: f64 = random();
-                        let pixel_y: f64 = random();
-                        let x_position = col as f64 + pixel_x;
-                        let y_position = row as f64 + pixel_y;
-                        let x_level = x_position / camera.image_width as f64;
-                        let y_level = 1.0 - (y_position / camera.image_height as f64);
-                        if VERBOSE {
-                            eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
-                        }
-                        let ray = camera.get_ray(x_level, y_level);
-                        pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
-                    }
-                    pixel.get_color()
-                };
-                result.push_str(&format!("{}\n", pixel_color));
-            }
-        }
+        run_thread(thread_rows, camera, start_time, &world, &mut result);
     }
     print!("{}", result);
 
