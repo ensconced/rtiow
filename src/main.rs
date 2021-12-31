@@ -108,7 +108,7 @@ fn run_thread(
                     }
                     pixel.get_color()
                 };
-                println!("{}", pixel_color);
+                result.push_str(&format!("{}", pixel_color));
             }
         }
     });
