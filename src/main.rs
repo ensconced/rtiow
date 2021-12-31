@@ -159,35 +159,13 @@ fn main() {
     println!("{}", MAX_COLOR);
 
     let start_time = Instant::now();
-
-    struct ThreadInfo {
-        rows: Range<u32>,
-        output: String,
-    }
-
-    let thread_count = num_cpus::get() as u32;
+    let thread_count = num_cpus::get();
     eprintln!("thread count: {}", thread_count);
-    let mut threads: Vec<ThreadInfo> = Vec::new();
-    let rows_per_thread = camera.image_height / thread_count;
-    for thread_idx in 0..thread_count {
-        let start_row = if thread_idx == 0 {
-            0
-        } else {
-            threads[thread_idx as usize - 1].rows.end
-        };
-        threads.push(ThreadInfo {
-            rows: start_row..start_row + rows_per_thread,
-            output: String::new(),
-        })
-    }
-    threads[thread_count as usize - 1].rows.end = camera.image_height;
-
-    let mut join_handles = Vec::new();
-    for some_thread in threads.iter_mut() {
-        let join_handle = thread::spawn(|| {});
-        join_handles.push(join_handle);
-
-        for row in some_thread.rows.start..some_thread.rows.end {
+    let rows_per_thread = (camera.image_height as f64 / thread_count as f64).ceil() as usize;
+    let rows: Vec<u32> = (0..camera.image_height).collect();
+    let mut result = String::new();
+    for thread_rows in rows.chunks(rows_per_thread) {
+        for row in thread_rows[0]..=thread_rows[thread_rows.len() - 1] {
             // TODO - report progress via inter-thread messaging...
             if DISPLAY_PROGRESS {
                 display_progress(camera.image_height, row, start_time);
@@ -215,18 +193,16 @@ fn main() {
                     }
                     pixel.get_color()
                 };
-                some_thread.output.push_str(&format!("{}\n", pixel_color))
+                result.push_str(&format!("{}\n", pixel_color));
             }
         }
     }
-
-    for some_thread in threads {
-        print!("{}", some_thread.output);
-    }
+    print!("{}", result);
 
     if DISPLAY_PROGRESS {
         display_done();
     }
+
     mem::drop(world);
 }
 
