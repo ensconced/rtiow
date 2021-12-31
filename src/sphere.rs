@@ -4,11 +4,13 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct GeometricSphere {
     pub radius: f64,
     pub center: Vec3,
 }
 
+#[derive(Clone)]
 pub struct ObjectSphere {
     geometry: GeometricSphere,
     material: Arc<dyn Material + Send + Sync>,

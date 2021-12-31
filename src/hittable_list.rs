@@ -2,6 +2,7 @@ use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::sphere::ObjectSphere;
 
+#[derive(Clone)]
 pub struct HittableList(Vec<ObjectSphere>);
 
 impl HittableList {

@@ -72,14 +72,15 @@ fn display_done() {
 }
 
 fn run_thread(
-    thread_rows: &[u32],
+    start_row: u32,
+    end_row: u32,
     camera: Camera,
     start_time: Instant,
-    world: &HittableList,
+    world: HittableList,
     result: &mut String,
 ) {
-    for row in thread_rows[0]..=thread_rows[thread_rows.len() - 1] {
-        thread::spawn(move || {
+    let join_handle = thread::spawn(move || {
+        for row in start_row..=end_row {
             // TODO - report progress via inter-thread messaging...
             if DISPLAY_PROGRESS {
                 display_progress(camera.image_height, row, start_time);
@@ -103,14 +104,15 @@ fn run_thread(
                             eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
                         }
                         let ray = camera.get_ray(x_level, y_level);
-                        pixel.add_color(color_ray(camera.viewport_height, ray, world, MAX_DEPTH));
+                        pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
                     }
                     pixel.get_color()
                 };
-                result.push_str(&format!("{}\n", pixel_color));
+                println!("{}", pixel_color);
             }
-        });
-    }
+        }
+    });
+    join_handle.join().unwrap();
 }
 
 fn main() {
@@ -207,7 +209,16 @@ fn main() {
     let rows: Vec<u32> = (0..camera.image_height).collect();
     let mut result = String::new();
     for thread_rows in rows.chunks(rows_per_thread) {
-        run_thread(thread_rows, camera, start_time, &world, &mut result);
+        let start_row = thread_rows[0];
+        let end_row = thread_rows[thread_rows.len() - 1];
+        run_thread(
+            start_row,
+            end_row,
+            camera,
+            start_time,
+            world.clone(),
+            &mut result,
+        );
     }
     print!("{}", result);
 
