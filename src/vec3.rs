@@ -1,6 +1,6 @@
-use crate::utils::{remap, Range};
+use crate::utils::{range_width, remap};
 use rand::random;
-use std::{fmt, ops};
+use std::{fmt, ops, ops::Range};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3(pub f64, pub f64, pub f64);
@@ -81,7 +81,7 @@ impl Vec3 {
         }
     }
 
-    pub fn remap(&self, original_range: Range, new_range: Range) -> Self {
+    pub fn remap(&self, original_range: &Range<f64>, new_range: &Range<f64>) -> Self {
         Self(
             remap(self.0, original_range, new_range),
             remap(self.1, original_range, new_range),
@@ -89,8 +89,8 @@ impl Vec3 {
         )
     }
 
-    pub fn random_from_range(range: Range) -> Self {
-        let rand_in_range = || -> f64 { range.min + random::<f64>() * range.width() };
+    pub fn random_from_range(range: &Range<f64>) -> Self {
+        let rand_in_range = || -> f64 { range.start + random::<f64>() * range_width(range) };
         Self(rand_in_range(), rand_in_range(), rand_in_range())
     }
 

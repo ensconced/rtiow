@@ -1,7 +1,6 @@
 use crate::hittable::{Hit, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
-use crate::utils::Range;
 use crate::vec3::Vec3;
 use std::rc::Rc;
 
@@ -22,7 +21,7 @@ impl GeometricSphere {
 
     pub fn random_point_in(&self) -> Vec3 {
         loop {
-            let vec = Vec3::random_from_range(Range::new(-self.radius, self.radius));
+            let vec = Vec3::random_from_range(&(-self.radius..self.radius));
             if vec.length_squared() < self.radius.powi(2) {
                 return self.center + vec;
             }

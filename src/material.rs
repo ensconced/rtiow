@@ -2,7 +2,6 @@ use crate::color::Color;
 use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::sphere::GeometricSphere;
-use crate::utils::Range;
 use crate::vec3::Vec3;
 use rand::random;
 
@@ -65,7 +64,7 @@ impl Dielectric {
 
 impl Material for Lambertian {
     fn scatter(&self, hit: &Hit) -> Option<ScatterResult> {
-        let reflection_vector = Vec3::random_from_range(Range::new(-1.0, 1.0));
+        let reflection_vector = Vec3::random_from_range(&(-1.0..1.0));
         Some(ScatterResult {
             material_color: self.color,
             scattered_ray: Ray::new(hit.hit_point, hit.normal + reflection_vector),

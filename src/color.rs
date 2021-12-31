@@ -66,7 +66,7 @@ impl fmt::Display for Color {
             (gamma_correct(clamped) * 256.0) as u32
         }
 
-        writeln!(
+        write!(
             f,
             "{} {} {}",
             scale_color(self.r()),
