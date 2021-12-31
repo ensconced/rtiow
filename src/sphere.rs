@@ -2,7 +2,7 @@ use crate::hittable::Hit;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct GeometricSphere {
     pub radius: f64,
@@ -11,7 +11,7 @@ pub struct GeometricSphere {
 
 pub struct ObjectSphere {
     geometry: GeometricSphere,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material + Send + Sync>,
 }
 
 impl GeometricSphere {
@@ -48,7 +48,7 @@ impl GeometricSphere {
 }
 
 impl ObjectSphere {
-    pub fn new(radius: f64, center: Vec3, material: Rc<dyn Material>) -> Self {
+    pub fn new(radius: f64, center: Vec3, material: Arc<dyn Material + Send + Sync>) -> Self {
         Self {
             geometry: GeometricSphere { radius, center },
             material: material,
@@ -84,7 +84,7 @@ impl ObjectSphere {
             hit_point,
             ray,
             root,
-            Rc::clone(&self.material),
+            Arc::clone(&self.material),
         ))
     }
 }

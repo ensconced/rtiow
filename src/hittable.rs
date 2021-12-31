@@ -1,7 +1,7 @@
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Hit {
     pub normal: Vec3,
@@ -9,7 +9,7 @@ pub struct Hit {
     pub hit_point: Vec3,
     pub ray_t: f64,
     pub ray: Ray,
-    pub material: Rc<dyn Material>,
+    pub material: Arc<dyn Material + Send + Sync>,
 }
 
 impl Hit {
@@ -18,7 +18,7 @@ impl Hit {
         hit_point: Vec3,
         ray: Ray,
         ray_t: f64,
-        material: Rc<dyn Material>,
+        material: Arc<dyn Material + Send + Sync>,
     ) -> Self {
         // The normal should always point against the incident ray i.e. inward
         // if the ray is coming from inside, outward if the ray is coming from

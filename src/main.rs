@@ -18,7 +18,7 @@ use pixel::Pixel;
 use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
-use std::{mem, rc::Rc, thread, time::Instant};
+use std::{mem, sync::Arc, thread, time::Instant};
 use utils::*;
 use vec3::Vec3;
 
@@ -79,35 +79,37 @@ fn run_thread(
     result: &mut String,
 ) {
     for row in thread_rows[0]..=thread_rows[thread_rows.len() - 1] {
-        // TODO - report progress via inter-thread messaging...
-        if DISPLAY_PROGRESS {
-            display_progress(camera.image_height, row, start_time);
-        }
-
-        for col in 0..camera.image_width {
-            if VERBOSE {
-                eprintln!("ROW {} COL {}", row, col);
+        thread::spawn(move || {
+            // TODO - report progress via inter-thread messaging...
+            if DISPLAY_PROGRESS {
+                display_progress(camera.image_height, row, start_time);
             }
-            let pixel_color = {
-                let mut pixel = Pixel::new();
 
-                for i in 0..SAMPLES_PER_PIXEL {
-                    let pixel_x: f64 = random();
-                    let pixel_y: f64 = random();
-                    let x_position = col as f64 + pixel_x;
-                    let y_position = row as f64 + pixel_y;
-                    let x_level = x_position / camera.image_width as f64;
-                    let y_level = 1.0 - (y_position / camera.image_height as f64);
-                    if VERBOSE {
-                        eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
-                    }
-                    let ray = camera.get_ray(x_level, y_level);
-                    pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
+            for col in 0..camera.image_width {
+                if VERBOSE {
+                    eprintln!("ROW {} COL {}", row, col);
                 }
-                pixel.get_color()
-            };
-            result.push_str(&format!("{}\n", pixel_color));
-        }
+                let pixel_color = {
+                    let mut pixel = Pixel::new();
+
+                    for i in 0..SAMPLES_PER_PIXEL {
+                        let pixel_x: f64 = random();
+                        let pixel_y: f64 = random();
+                        let x_position = col as f64 + pixel_x;
+                        let y_position = row as f64 + pixel_y;
+                        let x_level = x_position / camera.image_width as f64;
+                        let y_level = 1.0 - (y_position / camera.image_height as f64);
+                        if VERBOSE {
+                            eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
+                        }
+                        let ray = camera.get_ray(x_level, y_level);
+                        pixel.add_color(color_ray(camera.viewport_height, ray, world, MAX_DEPTH));
+                    }
+                    pixel.get_color()
+                };
+                result.push_str(&format!("{}\n", pixel_color));
+            }
+        });
     }
 }
 
@@ -126,18 +128,18 @@ fn main() {
                 let sphere_obj = if choose_material < 0.8 {
                     // diffuse
                     let sphere_material = Lambertian::new(Vec3::random() * Vec3::random());
-                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
+                    ObjectSphere::new(0.2, center, Arc::new(sphere_material))
                 } else if choose_material < 0.95 {
                     // metal
                     let albedo = Vec3::random().remap(&(0.0..1.0), &(0.5..1.0));
                     let mut rng = rand::thread_rng();
                     let fuzz = rng.gen_range(0.0..0.5);
                     let sphere_material = Metal::new(albedo, fuzz);
-                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
+                    ObjectSphere::new(0.2, center, Arc::new(sphere_material))
                 } else {
                     // glass
                     let sphere_material = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
-                    ObjectSphere::new(0.2, center, Rc::new(sphere_material))
+                    ObjectSphere::new(0.2, center, Arc::new(sphere_material))
                 };
                 world.add(sphere_obj);
             }
@@ -167,7 +169,7 @@ fn main() {
     world.add(ObjectSphere::new(
         1000.0,
         Vec3(0.0, -1000.0, 0.0),
-        Rc::new(ground_material),
+        Arc::new(ground_material),
     ));
 
     let material_1 = Dielectric::new(Vec3(1.0, 1.0, 1.0), 1.5);
@@ -175,7 +177,7 @@ fn main() {
     world.add(ObjectSphere::new(
         1.0,
         Vec3(0.0, 1.0, 0.0),
-        Rc::new(material_1),
+        Arc::new(material_1),
     ));
 
     let material_2 = Lambertian::new(Vec3(0.4, 0.2, 0.1));
@@ -183,7 +185,7 @@ fn main() {
     world.add(ObjectSphere::new(
         1.0,
         Vec3(-4.0, 1.0, 0.0),
-        Rc::new(material_2),
+        Arc::new(material_2),
     ));
 
     let material_3 = Metal::new(Vec3(0.7, 0.6, 0.5), 0.0);
@@ -191,7 +193,7 @@ fn main() {
     world.add(ObjectSphere::new(
         1.0,
         Vec3(4.0, 1.0, 0.0),
-        Rc::new(material_3),
+        Arc::new(material_3),
     ));
 
     println!("P3"); // means this is an RGB color image in ASCII
