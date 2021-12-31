@@ -39,10 +39,6 @@ impl GeometricSphere {
         point
     }
 
-    pub fn new(radius: f64, center: Vec3) -> Self {
-        Self { radius, center }
-    }
-
     pub fn unit() -> Self {
         Self {
             radius: 1.0,

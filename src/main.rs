@@ -11,9 +11,8 @@ mod vec3;
 
 use camera::Camera;
 use color::Color;
-use hittable::Hit;
 use hittable_list::HittableList;
-use material::{Dielectric, Hemispherical, Lambertian, Material, Metal, RandomInSphere};
+use material::{Dielectric, Lambertian, Metal};
 use num_cpus;
 use pixel::Pixel;
 use rand::{random, Rng};
@@ -28,14 +27,8 @@ const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 5;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
 const IMAGE_WIDTH: u32 = 300;
-const DEBUG_SETTING: Option<DebugStrategy> = None;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
-
-enum DebugStrategy {
-    Normals,
-    SingleColor,
-}
 
 fn restart_line() {
     eprint!("\x1B[2K\r"); // clear line and return cursor to start
@@ -165,24 +158,6 @@ fn main() {
     println!("{} {}", camera.image_width, camera.image_height);
     println!("{}", MAX_COLOR);
 
-    let debug_color = |debug_setting, col, row| {
-        let x_position = col as f64;
-        let y_position = row as f64;
-        let x_level = x_position / camera.image_width as f64;
-        let y_level = 1.0 - (y_position / camera.image_height as f64);
-        let ray = camera.get_ray(x_level, y_level);
-
-        if let Some(Hit { normal, .. }) = world.hit(ray, SHADOW_ACNE_AVOIDANCE_STEP, f64::INFINITY)
-        {
-            match debug_setting {
-                DebugStrategy::Normals => color_by_normal(normal),
-                DebugStrategy::SingleColor => Color::red(),
-            }
-        } else {
-            background(ray)
-        }
-    };
-
     let start_time = Instant::now();
 
     struct ThreadInfo {
@@ -214,17 +189,15 @@ fn main() {
 
         for row in some_thread.rows.start..some_thread.rows.end {
             // TODO - report progress via inter-thread messaging...
-            // if DISPLAY_PROGRESS {
-            //     display_progress(camera.image_height, row, start_time);
-            // }
+            if DISPLAY_PROGRESS {
+                display_progress(camera.image_height, row, start_time);
+            }
 
             for col in 0..camera.image_width {
-                // if VERBOSE {
-                //     eprintln!("ROW {} COL {}", row, col);
-                // }
-                let pixel_color = if let Some(debug_setting) = DEBUG_SETTING {
-                    debug_color(debug_setting, col, row)
-                } else {
+                if VERBOSE {
+                    eprintln!("ROW {} COL {}", row, col);
+                }
+                let pixel_color = {
                     let mut pixel = Pixel::new();
 
                     for i in 0..SAMPLES_PER_PIXEL {
@@ -234,9 +207,9 @@ fn main() {
                         let y_position = row as f64 + pixel_y;
                         let x_level = x_position / camera.image_width as f64;
                         let y_level = 1.0 - (y_position / camera.image_height as f64);
-                        // if VERBOSE {
-                        //     eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
-                        // }
+                        if VERBOSE {
+                            eprintln!("SAMPLE {}, x {}, y {}", i, x_level, y_level);
+                        }
                         let ray = camera.get_ray(x_level, y_level);
                         pixel.add_color(color_ray(camera.viewport_height, ray, &world, MAX_DEPTH));
                     }
@@ -266,15 +239,6 @@ fn background(ray: Ray) -> Color {
         eprintln!("and upwardsness is {}", upwardsness);
     }
     Color::from_vec(lerp(upwardsness, Color::white().vec, Color::sky_blue().vec))
-}
-
-fn color_by_normal(normal: Vec3) -> Color {
-    let normal_component_range = &(-1.0..1.0);
-    let new_range = &(0.0..1.0);
-    let r = remap(normal.0, normal_component_range, new_range);
-    let g = remap(normal.1, normal_component_range, new_range);
-    let b = remap(normal.2, normal_component_range, new_range);
-    Color::new(r, g, b)
 }
 
 fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -> Color {
