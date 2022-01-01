@@ -33,14 +33,29 @@ use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 5;
+const SAMPLES_PER_PIXEL: u32 = 10;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 1000;
+const IMAGE_WIDTH: u32 = 100;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
 
-fn restart_line() {
-    eprint!("\x1B[2K\r"); // clear line and return cursor to start
+fn clear_line() {
+    eprint!("\x1B[2K");
+}
+
+fn move_to_line_start() {
+    eprint!("\r");
+}
+
+fn move_cursor_up() {
+    eprint!("\x1B[A");
+}
+
+fn clear_lines(line_count: u32) {
+    for _ in 0..line_count {
+        clear_line();
+        move_cursor_up();
+    }
 }
 
 fn format_microseconds(micros: u128) -> String {
@@ -68,7 +83,8 @@ fn display_progress(image_height: u32, row: u32, start_time: Instant) {
         let micros_remaining = avg_micros_per_row * scanlines_remaining as u128;
         format_microseconds(micros_remaining)
     };
-    restart_line();
+    clear_line();
+    move_to_line_start();
     eprint!(
         "scanlines remaining: {}, time remaining: {}",
         scanlines_remaining, time_remaining
@@ -76,13 +92,20 @@ fn display_progress(image_height: u32, row: u32, start_time: Instant) {
 }
 
 fn display_done() {
-    restart_line();
+    clear_line();
+    move_to_line_start();
     eprintln!("Done");
 }
 
 struct ThreadResult {
     pixels: String,
     thread_idx: u32,
+}
+
+struct ThreadProgress {
+    scanlines_remaining: u32,
+    thread_idx: u32,
+    done: bool,
 }
 
 fn run_thread(
@@ -92,7 +115,8 @@ fn run_thread(
     camera: Camera,
     start_time: Instant,
     world: HittableList,
-    sender: Sender<ThreadResult>,
+    result_sender: Sender<ThreadResult>,
+    progress_sender: Sender<ThreadProgress>,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let mut result = ThreadResult {
@@ -100,9 +124,15 @@ fn run_thread(
             thread_idx,
         };
         for row in start_row..=end_row {
-            // TODO - report progress via inter-thread messaging...
             if DISPLAY_PROGRESS {
-                display_progress(camera.image_height, row, start_time);
+                progress_sender
+                    .send(ThreadProgress {
+                        scanlines_remaining: end_row - row,
+                        thread_idx,
+                        done: false,
+                    })
+                    .unwrap();
+                // display_progress(camera.image_height, row, start_time);
             }
 
             for col in 0..camera.image_width {
@@ -130,7 +160,7 @@ fn run_thread(
                 result.pixels.push_str(&format!("{}\n", pixel_color));
             }
         }
-        sender.send(result).unwrap();
+        result_sender.send(result).unwrap();
     })
 }
 
@@ -227,7 +257,8 @@ fn main() {
     let rows_per_thread = (camera.image_height as f64 / thread_count as f64).ceil() as usize;
     let rows: Vec<u32> = (0..camera.image_height).collect();
 
-    let (sender, receiver) = channel();
+    let (result_sender, result_receiver) = channel::<ThreadResult>();
+    let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
     let mut join_handles = vec![];
     let mut thread_idx = 0;
     for thread_rows in rows.chunks(rows_per_thread) {
@@ -240,14 +271,58 @@ fn main() {
             camera,
             start_time,
             world.clone(),
-            sender.clone(),
+            result_sender.clone(),
+            progress_sender.clone(),
         ));
         thread_idx += 1;
     }
 
+    let mut first_time = true;
+    loop {
+        let mut report = vec![];
+        let mut all_done = true;
+        for thread_idx in 0..join_handles.len() {
+            if let Ok(thread_progress) = progress_receiver.recv() {
+                all_done = false;
+                report.push(thread_progress);
+                // report.push_str(&format!(
+                //     "scanlines completed: {}\n",
+                //     thread_progress.scanlines_completed
+                // ));
+            } else {
+                report.push(ThreadProgress {
+                    thread_idx: thread_idx as u32,
+                    scanlines_remaining: 0,
+                    done: true,
+                })
+                // report.push_str(&format!("all done\n"))
+            }
+        }
+        if all_done {
+            break;
+        }
+        if first_time {
+            first_time = false;
+        } else {
+            clear_lines(8);
+        }
+        report.sort_by_key(|res| res.thread_idx);
+        for ThreadProgress {
+            scanlines_remaining,
+            thread_idx,
+            ..
+        } in report
+        {
+            eprintln!(
+                "thread {}: scanlines remaining: {}",
+                thread_idx, scanlines_remaining
+            );
+        }
+    }
+
     let mut thread_results = vec![];
-    for _ in join_handles {
-        thread_results.push(receiver.recv().unwrap());
+    for _ in 0..join_handles.len() {
+        thread_results.push(result_receiver.recv().unwrap());
     }
 
     thread_results.sort_by_key(|res| res.thread_idx);
