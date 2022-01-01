@@ -278,8 +278,9 @@ fn main() {
     }
 
     let mut first_time = true;
+
     loop {
-        let mut report = vec![];
+        let mut report = Vec::new();
         let mut all_done = true;
         for thread_idx in 0..join_handles.len() {
             if let Ok(thread_progress) = progress_receiver.recv() {
