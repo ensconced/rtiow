@@ -18,7 +18,15 @@ use pixel::Pixel;
 use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
-use std::{mem, sync::Arc, thread, time::Instant};
+use std::{
+    mem,
+    sync::{
+        mpsc::{channel, Sender},
+        Arc,
+    },
+    thread,
+    time::Instant,
+};
 use utils::*;
 use vec3::Vec3;
 
@@ -77,9 +85,10 @@ fn run_thread(
     camera: Camera,
     start_time: Instant,
     world: HittableList,
-    result: &mut String,
+    sender: Sender<String>,
 ) {
     let join_handle = thread::spawn(move || {
+        let mut result = String::new();
         for row in start_row..=end_row {
             // TODO - report progress via inter-thread messaging...
             if DISPLAY_PROGRESS {
@@ -108,9 +117,10 @@ fn run_thread(
                     }
                     pixel.get_color()
                 };
-                result.push_str(&format!("{}", pixel_color));
+                result.push_str(&format!("{}\n", pixel_color));
             }
         }
+        sender.send(result).unwrap();
     });
     join_handle.join().unwrap();
 }
@@ -207,7 +217,8 @@ fn main() {
     eprintln!("thread count: {}", thread_count);
     let rows_per_thread = (camera.image_height as f64 / thread_count as f64).ceil() as usize;
     let rows: Vec<u32> = (0..camera.image_height).collect();
-    let mut result = String::new();
+
+    let (sender, receiver) = channel::<String>();
     for thread_rows in rows.chunks(rows_per_thread) {
         let start_row = thread_rows[0];
         let end_row = thread_rows[thread_rows.len() - 1];
@@ -217,10 +228,11 @@ fn main() {
             camera,
             start_time,
             world.clone(),
-            &mut result,
+            sender.clone(),
         );
+        let msg = receiver.recv().unwrap();
+        println!("{}", msg);
     }
-    print!("{}", result);
 
     if DISPLAY_PROGRESS {
         display_done();
