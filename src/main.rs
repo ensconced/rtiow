@@ -25,6 +25,7 @@ use std::{
         Arc,
     },
     thread,
+    thread::JoinHandle,
     time::Instant,
 };
 use utils::*;
@@ -79,16 +80,25 @@ fn display_done() {
     eprintln!("Done");
 }
 
+struct ThreadResult {
+    pixels: String,
+    thread_idx: u32,
+}
+
 fn run_thread(
+    thread_idx: u32,
     start_row: u32,
     end_row: u32,
     camera: Camera,
     start_time: Instant,
     world: HittableList,
-    sender: Sender<String>,
-) {
-    let join_handle = thread::spawn(move || {
-        let mut result = String::new();
+    sender: Sender<ThreadResult>,
+) -> JoinHandle<()> {
+    thread::spawn(move || {
+        let mut result = ThreadResult {
+            pixels: String::new(),
+            thread_idx,
+        };
         for row in start_row..=end_row {
             // TODO - report progress via inter-thread messaging...
             if DISPLAY_PROGRESS {
@@ -117,12 +127,11 @@ fn run_thread(
                     }
                     pixel.get_color()
                 };
-                result.push_str(&format!("{}\n", pixel_color));
+                result.pixels.push_str(&format!("{}\n", pixel_color));
             }
         }
         sender.send(result).unwrap();
-    });
-    join_handle.join().unwrap();
+    })
 }
 
 fn main() {
@@ -218,20 +227,32 @@ fn main() {
     let rows_per_thread = (camera.image_height as f64 / thread_count as f64).ceil() as usize;
     let rows: Vec<u32> = (0..camera.image_height).collect();
 
-    let (sender, receiver) = channel::<String>();
+    let (sender, receiver) = channel();
+    let mut join_handles = vec![];
+    let mut thread_idx = 0;
     for thread_rows in rows.chunks(rows_per_thread) {
         let start_row = thread_rows[0];
         let end_row = thread_rows[thread_rows.len() - 1];
-        run_thread(
+        join_handles.push(run_thread(
+            thread_idx,
             start_row,
             end_row,
             camera,
             start_time,
             world.clone(),
             sender.clone(),
-        );
-        let msg = receiver.recv().unwrap();
-        println!("{}", msg);
+        ));
+        thread_idx += 1;
+    }
+
+    let mut thread_results = vec![];
+    for _ in join_handles {
+        thread_results.push(receiver.recv().unwrap());
+    }
+
+    thread_results.sort_by_key(|res| res.thread_idx);
+    for thread_result in thread_results {
+        print!("{}", thread_result.pixels);
     }
 
     if DISPLAY_PROGRESS {
