@@ -35,7 +35,7 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 5;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 300;
+const IMAGE_WIDTH: u32 = 1000;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
 
