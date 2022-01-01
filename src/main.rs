@@ -21,7 +21,7 @@ use sphere::ObjectSphere;
 use std::{
     mem,
     sync::{
-        mpsc::{channel, Sender},
+        mpsc::{channel, Receiver, Sender},
         Arc,
     },
     thread,
@@ -91,6 +91,44 @@ fn display_progress(image_height: u32, row: u32, start_time: Instant) {
     );
 }
 
+fn display_threads_progress(
+    progress_receiver: Receiver<ThreadProgress>,
+    thread_infos: Vec<ThreadInfo>,
+) {
+    let mut report = Vec::new();
+    for ThreadInfo {
+        row_count,
+        thread_idx,
+        ..
+    } in thread_infos
+    {
+        report.push(ThreadProgress {
+            scanlines_remaining: row_count,
+            thread_idx: thread_idx,
+            done: false,
+        });
+    }
+
+    loop {
+        if let Ok(thread_progress) = progress_receiver.recv() {
+            report[thread_progress.thread_idx as usize] = thread_progress;
+        } else {
+            break;
+        }
+        // for ThreadProgress {
+        //     scanlines_remaining,
+        //     thread_idx,
+        //     ..
+        // } in report
+        // {
+        //     eprintln!(
+        //         "thread {}: scanlines remaining: {}",
+        //         thread_idx, scanlines_remaining
+        //     );
+        // }
+    }
+}
+
 fn display_done() {
     clear_line();
     move_to_line_start();
@@ -102,6 +140,7 @@ struct ThreadResult {
     thread_idx: u32,
 }
 
+#[derive(Clone, Copy)]
 struct ThreadProgress {
     scanlines_remaining: u32,
     thread_idx: u32,
@@ -315,8 +354,7 @@ fn main() {
     eprintln!("thread count: {}", thread_infos.len());
     let (result_sender, result_receiver) = channel::<ThreadResult>();
     let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
-
-    let mut join_handles = start_threads(
+    let join_handles = start_threads(
         thread_infos,
         camera,
         start_time,
@@ -325,48 +363,7 @@ fn main() {
         progress_sender,
     );
     let mut first_time = true;
-
-    loop {
-        let mut report = Vec::new();
-        let mut all_done = true;
-        for thread_idx in 0..join_handles.len() {
-            if let Ok(thread_progress) = progress_receiver.recv() {
-                all_done = false;
-                report.push(thread_progress);
-                // report.push_str(&format!(
-                //     "scanlines completed: {}\n",
-                //     thread_progress.scanlines_completed
-                // ));
-            } else {
-                report.push(ThreadProgress {
-                    thread_idx: thread_idx as u32,
-                    scanlines_remaining: 0,
-                    done: true,
-                })
-                // report.push_str(&format!("all done\n"))
-            }
-        }
-        if all_done {
-            break;
-        }
-        if first_time {
-            first_time = false;
-        } else {
-            clear_lines(8);
-        }
-        report.sort_by_key(|res| res.thread_idx);
-        for ThreadProgress {
-            scanlines_remaining,
-            thread_idx,
-            ..
-        } in report
-        {
-            eprintln!(
-                "thread {}: scanlines remaining: {}",
-                thread_idx, scanlines_remaining
-            );
-        }
-    }
+    display_threads_progress(progress_receiver, thread_infos);
 
     let mut thread_results = vec![];
     for _ in 0..join_handles.len() {
