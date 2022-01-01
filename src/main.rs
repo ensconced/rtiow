@@ -108,6 +108,13 @@ struct ThreadProgress {
     done: bool,
 }
 
+struct ThreadInfo {
+    row_count: u32,
+    start_row: u32,
+    end_row: u32,
+    thread_idx: u32,
+}
+
 fn run_thread(
     thread_idx: u32,
     start_row: u32,
@@ -162,6 +169,58 @@ fn run_thread(
         }
         result_sender.send(result).unwrap();
     })
+}
+
+fn get_threads_info(image_height: u32) -> Vec<ThreadInfo> {
+    let thread_count = num_cpus::get();
+    let rows_per_thread = (image_height as f64 / thread_count as f64).ceil() as usize;
+    let rows: Vec<u32> = (0..image_height).collect();
+    let mut thread_infos = vec![];
+
+    let mut thread_idx = 0;
+    for thread_rows in rows.chunks(rows_per_thread) {
+        let start_row = thread_rows[0];
+        let end_row = thread_rows[thread_rows.len() - 1];
+        thread_infos.push(ThreadInfo {
+            start_row,
+            end_row,
+            thread_idx,
+            row_count: thread_rows.len() as u32,
+        });
+
+        thread_idx += 1;
+    }
+    thread_infos
+}
+
+fn start_threads(
+    thread_infos: Vec<ThreadInfo>,
+    camera: Camera,
+    start_time: Instant,
+    world: HittableList,
+    result_sender: Sender<ThreadResult>,
+    progress_sender: Sender<ThreadProgress>,
+) -> Vec<JoinHandle<()>> {
+    let mut join_handles = vec![];
+    for ThreadInfo {
+        thread_idx,
+        start_row,
+        end_row,
+        ..
+    } in thread_infos
+    {
+        join_handles.push(run_thread(
+            thread_idx,
+            start_row,
+            end_row,
+            camera,
+            start_time,
+            world.clone(),
+            result_sender.clone(),
+            progress_sender.clone(),
+        ));
+    }
+    join_handles
 }
 
 fn main() {
@@ -252,31 +311,19 @@ fn main() {
     println!("{}", MAX_COLOR);
 
     let start_time = Instant::now();
-    let thread_count = num_cpus::get();
-    eprintln!("thread count: {}", thread_count);
-    let rows_per_thread = (camera.image_height as f64 / thread_count as f64).ceil() as usize;
-    let rows: Vec<u32> = (0..camera.image_height).collect();
-
+    let thread_infos = get_threads_info(camera.image_height);
+    eprintln!("thread count: {}", thread_infos.len());
     let (result_sender, result_receiver) = channel::<ThreadResult>();
     let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
-    let mut join_handles = vec![];
-    let mut thread_idx = 0;
-    for thread_rows in rows.chunks(rows_per_thread) {
-        let start_row = thread_rows[0];
-        let end_row = thread_rows[thread_rows.len() - 1];
-        join_handles.push(run_thread(
-            thread_idx,
-            start_row,
-            end_row,
-            camera,
-            start_time,
-            world.clone(),
-            result_sender.clone(),
-            progress_sender.clone(),
-        ));
-        thread_idx += 1;
-    }
 
+    let mut join_handles = start_threads(
+        thread_infos,
+        camera,
+        start_time,
+        world,
+        result_sender,
+        progress_sender,
+    );
     let mut first_time = true;
 
     loop {
@@ -334,8 +381,6 @@ fn main() {
     if DISPLAY_PROGRESS {
         display_done();
     }
-
-    mem::drop(world);
 }
 
 fn background(ray: Ray) -> Color {
