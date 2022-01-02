@@ -35,7 +35,7 @@ const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
 const SAMPLES_PER_PIXEL: u32 = 10;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 100;
+const IMAGE_WIDTH: u32 = 1000;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
 
@@ -53,8 +53,8 @@ fn move_cursor_up() {
 
 fn clear_lines(line_count: u32) {
     for _ in 0..line_count {
-        clear_line();
         move_cursor_up();
+        clear_line();
     }
 }
 
@@ -93,39 +93,40 @@ fn display_progress(image_height: u32, row: u32, start_time: Instant) {
 
 fn display_threads_progress(
     progress_receiver: Receiver<ThreadProgress>,
-    thread_infos: Vec<ThreadInfo>,
+    thread_infos: &[ThreadInfo],
 ) {
     let mut report = Vec::new();
-    for ThreadInfo {
-        row_count,
-        thread_idx,
-        ..
-    } in thread_infos
-    {
+    for thread_info in thread_infos {
         report.push(ThreadProgress {
-            scanlines_remaining: row_count,
-            thread_idx: thread_idx,
+            scanlines_remaining: thread_info.row_count,
+            thread_idx: thread_info.thread_idx,
             done: false,
         });
     }
 
+    let mut first_time = true;
     loop {
         if let Ok(thread_progress) = progress_receiver.recv() {
             report[thread_progress.thread_idx as usize] = thread_progress;
+            if first_time {
+                first_time = false;
+            } else {
+                clear_lines(thread_infos.len() as u32);
+            }
+            for thread_info in thread_infos {
+                let ThreadProgress {
+                    scanlines_remaining,
+                    thread_idx,
+                    ..
+                } = report[thread_info.thread_idx as usize];
+                eprintln!(
+                    "thread {}: scanlines remaining: {}",
+                    thread_idx, scanlines_remaining
+                );
+            }
         } else {
             break;
         }
-        // for ThreadProgress {
-        //     scanlines_remaining,
-        //     thread_idx,
-        //     ..
-        // } in report
-        // {
-        //     eprintln!(
-        //         "thread {}: scanlines remaining: {}",
-        //         thread_idx, scanlines_remaining
-        //     );
-        // }
     }
 }
 
@@ -147,6 +148,7 @@ struct ThreadProgress {
     done: bool,
 }
 
+#[derive(Debug)]
 struct ThreadInfo {
     row_count: u32,
     start_row: u32,
@@ -233,7 +235,7 @@ fn get_threads_info(image_height: u32) -> Vec<ThreadInfo> {
 }
 
 fn start_threads(
-    thread_infos: Vec<ThreadInfo>,
+    thread_infos: &[ThreadInfo],
     camera: Camera,
     start_time: Instant,
     world: HittableList,
@@ -241,17 +243,11 @@ fn start_threads(
     progress_sender: Sender<ThreadProgress>,
 ) -> Vec<JoinHandle<()>> {
     let mut join_handles = vec![];
-    for ThreadInfo {
-        thread_idx,
-        start_row,
-        end_row,
-        ..
-    } in thread_infos
-    {
+    for thread_info in thread_infos {
         join_handles.push(run_thread(
-            thread_idx,
-            start_row,
-            end_row,
+            thread_info.thread_idx,
+            thread_info.start_row,
+            thread_info.end_row,
             camera,
             start_time,
             world.clone(),
@@ -351,19 +347,17 @@ fn main() {
 
     let start_time = Instant::now();
     let thread_infos = get_threads_info(camera.image_height);
-    eprintln!("thread count: {}", thread_infos.len());
     let (result_sender, result_receiver) = channel::<ThreadResult>();
     let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
     let join_handles = start_threads(
-        thread_infos,
+        &thread_infos,
         camera,
         start_time,
         world,
         result_sender,
         progress_sender,
     );
-    let mut first_time = true;
-    display_threads_progress(progress_receiver, thread_infos);
+    display_threads_progress(progress_receiver, &thread_infos);
 
     let mut thread_results = vec![];
     for _ in 0..join_handles.len() {
