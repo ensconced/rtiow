@@ -10,7 +10,7 @@ mod utils;
 mod vec3;
 
 use camera::Camera;
-use color::Color;
+use color::{Color, RenderColor};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
 use num_cpus;
@@ -135,7 +135,7 @@ fn display_done() {
 }
 
 struct ThreadResult {
-    pixels: String,
+    pixels: Vec<RenderColor>,
     thread_idx: u32,
 }
 
@@ -165,7 +165,7 @@ fn run_thread(
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let mut result = ThreadResult {
-            pixels: String::new(),
+            pixels: Vec::new(),
             thread_idx,
         };
         for row in start_row..=end_row {
@@ -200,7 +200,7 @@ fn run_thread(
                     }
                     pixel.get_color()
                 };
-                result.pixels.push_str(&format!("{}\n", pixel_color));
+                result.pixels.push(RenderColor::from_color(pixel_color));
             }
         }
         result_sender.send(result).unwrap();
@@ -361,7 +361,9 @@ fn main() {
 
     thread_results.sort_by_key(|res| res.thread_idx);
     for thread_result in thread_results {
-        print!("{}", thread_result.pixels);
+        for pixel in thread_result.pixels {
+            print!("{}", pixel);
+        }
     }
 
     if DISPLAY_PROGRESS {
@@ -408,7 +410,7 @@ fn color_ray(viewport_height: f64, ray: Ray, world: &HittableList, depth: u32) -
     } else {
         let bg = background(ray);
         if VERBOSE {
-            eprintln!("background: {}", bg);
+            eprintln!("background: {:?}", bg);
         }
         bg
     }

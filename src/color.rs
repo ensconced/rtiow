@@ -2,7 +2,7 @@ use crate::utils::clamp;
 use crate::vec3::Vec3;
 use std::fmt;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub vec: Vec3,
 }
@@ -54,8 +54,14 @@ impl Color {
     }
 }
 
-impl fmt::Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+pub struct RenderColor {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+impl RenderColor {
+    pub fn from_color(color: Color) -> Self {
         fn gamma_correct(color_component: f64) -> f64 {
             color_component.sqrt()
         }
@@ -66,12 +72,16 @@ impl fmt::Display for Color {
             (gamma_correct(clamped) * 256.0) as u32
         }
 
-        write!(
-            f,
-            "{} {} {}",
-            scale_color(self.r()),
-            scale_color(self.g()),
-            scale_color(self.b())
-        )
+        Self {
+            r: scale_color(color.r()) as u8,
+            g: scale_color(color.g()) as u8,
+            b: scale_color(color.b()) as u8,
+        }
+    }
+}
+
+impl fmt::Display for RenderColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.r, self.g, self.b)
     }
 }
