@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+if [ "$(whoami)" != "root" ]; then
+  echo "this script must be run with sudo" >&2
+  exit 1
+fi
+
+export CARGO_PROFILE_RELEASE_DEBUG=true
+cargo flamegraph >img.ppm
+open flamegraph.svg

@@ -13,7 +13,6 @@ use camera::Camera;
 use color::{Color, RenderColor};
 use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
-use num_cpus;
 use pixel::Pixel;
 use rand::{prelude::SliceRandom, random, thread_rng, Rng};
 use ray::Ray;
@@ -25,16 +24,15 @@ use std::{
     },
     thread,
     thread::JoinHandle,
-    time::Instant,
 };
 use utils::*;
 use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 500;
+const SAMPLES_PER_PIXEL: u32 = 50;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 600;
+const IMAGE_WIDTH: u32 = 1000;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
 
@@ -57,39 +55,6 @@ fn clear_lines(line_count: u32) {
     }
 }
 
-fn format_microseconds(micros: u128) -> String {
-    let mut seconds = micros / 1e6 as u128;
-    let mut minutes = 0;
-    let mut hours = 0;
-    if seconds > 60 {
-        minutes = seconds / 60;
-        seconds = seconds % 60;
-        if minutes > 60 {
-            hours = minutes / 60;
-            minutes = minutes % 60;
-        }
-    }
-    format!("{}h {}m {}s", hours, minutes, seconds)
-}
-
-fn display_progress(image_height: u32, row: u32, start_time: Instant) {
-    let scanlines_remaining = image_height - row;
-    let elapsed = start_time.elapsed().as_micros();
-    let time_remaining = if elapsed == 0 || row == 0 {
-        "unknown".to_string()
-    } else {
-        let avg_micros_per_row = elapsed / row as u128;
-        let micros_remaining = avg_micros_per_row * scanlines_remaining as u128;
-        format_microseconds(micros_remaining)
-    };
-    clear_line();
-    move_to_line_start();
-    eprint!(
-        "scanlines remaining: {}, time remaining: {}",
-        scanlines_remaining, time_remaining
-    );
-}
-
 fn display_threads_progress(
     progress_receiver: Receiver<ThreadProgress>,
     thread_infos: &[ThreadInfo],
@@ -103,27 +68,23 @@ fn display_threads_progress(
     }
 
     let mut first_time = true;
-    loop {
-        if let Ok(thread_progress) = progress_receiver.recv() {
-            report[thread_progress.thread_idx as usize] = thread_progress;
-            if first_time {
-                first_time = false;
-            } else {
-                clear_lines(thread_infos.len() as u32);
-            }
-            for thread_info in thread_infos {
-                let ThreadProgress {
-                    scanlines_remaining,
-                    thread_idx,
-                    ..
-                } = report[thread_info.thread_idx as usize];
-                eprintln!(
-                    "thread {} - scanlines remaining: {}/{}",
-                    thread_idx, scanlines_remaining, thread_info.row_count
-                );
-            }
+    while let Ok(thread_progress) = progress_receiver.recv() {
+        report[thread_progress.thread_idx as usize] = thread_progress;
+        if first_time {
+            first_time = false;
         } else {
-            break;
+            clear_lines(thread_infos.len() as u32);
+        }
+        for thread_info in thread_infos {
+            let ThreadProgress {
+                scanlines_remaining,
+                thread_idx,
+                ..
+            } = report[thread_info.thread_idx as usize];
+            eprintln!(
+                "thread {} - scanlines remaining: {}/{}",
+                thread_idx, scanlines_remaining, thread_info.row_count
+            );
         }
     }
 }
@@ -141,7 +102,6 @@ struct ThreadRowResult {
 
 struct ThreadResult {
     rows: Vec<ThreadRowResult>,
-    thread_idx: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -153,8 +113,6 @@ struct ThreadProgress {
 #[derive(Debug)]
 struct ThreadInfo {
     row_count: u32,
-    start_row: u32,
-    end_row: u32,
     thread_idx: u32,
 }
 
@@ -162,17 +120,13 @@ fn run_thread(
     thread_idx: u32,
     rows: Vec<u32>,
     camera: Camera,
-    start_time: Instant,
     world: HittableList,
     result_sender: Sender<ThreadResult>,
     progress_sender: Sender<ThreadProgress>,
 ) -> JoinHandle<()> {
     let rows_len = (&rows).len();
     thread::spawn(move || {
-        let mut thread_result = ThreadResult {
-            rows: Vec::new(),
-            thread_idx,
-        };
+        let mut thread_result = ThreadResult { rows: Vec::new() };
         if DISPLAY_PROGRESS {
             progress_sender
                 .send(ThreadProgress {
@@ -232,18 +186,11 @@ fn get_threads_info(image_height: u32) -> Vec<ThreadInfo> {
     let rows: Vec<u32> = (0..image_height).collect();
     let mut thread_infos = vec![];
 
-    let mut thread_idx = 0;
-    for thread_rows in rows.chunks(rows_per_thread) {
-        let start_row = thread_rows[0];
-        let end_row = thread_rows[thread_rows.len() - 1];
+    for (thread_idx, thread_rows) in rows.chunks(rows_per_thread).enumerate() {
         thread_infos.push(ThreadInfo {
-            start_row,
-            end_row,
-            thread_idx,
+            thread_idx: thread_idx as u32,
             row_count: thread_rows.len() as u32,
         });
-
-        thread_idx += 1;
     }
     thread_infos
 }
@@ -251,7 +198,6 @@ fn get_threads_info(image_height: u32) -> Vec<ThreadInfo> {
 fn start_threads(
     thread_infos: &[ThreadInfo],
     camera: Camera,
-    start_time: Instant,
     world: HittableList,
     result_sender: Sender<ThreadResult>,
     progress_sender: Sender<ThreadProgress>,
@@ -270,7 +216,6 @@ fn start_threads(
                 thread_info.thread_idx,
                 vec,
                 camera,
-                start_time,
                 world.clone(),
                 result_sender.clone(),
                 progress_sender.clone(),
@@ -368,18 +313,10 @@ fn main() {
     println!("{} {}", camera.image_width, camera.image_height);
     println!("{}", MAX_COLOR);
 
-    let start_time = Instant::now();
     let thread_infos = get_threads_info(camera.image_height);
     let (result_sender, result_receiver) = channel::<ThreadResult>();
     let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
-    start_threads(
-        &thread_infos,
-        camera,
-        start_time,
-        world,
-        result_sender,
-        progress_sender,
-    );
+    start_threads(&thread_infos, camera, world, result_sender, progress_sender);
     display_threads_progress(progress_receiver, &thread_infos);
 
     let mut thread_results = vec![];

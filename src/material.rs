@@ -11,7 +11,7 @@ pub struct ScatterResult {
 }
 
 pub trait Material {
-    fn scatter<'b>(&self, hit: &'b Hit) -> Option<ScatterResult>;
+    fn scatter(&self, hit: &Hit) -> Option<ScatterResult>;
 }
 
 pub struct Lambertian {
@@ -117,7 +117,7 @@ fn refract(incident_vector: Vec3, normal: Vec3, etai_over_etat: f64) -> Vec3 {
     let cos_theta = f64::min((-incident_vector).dot(normal), 1.0);
     let r_out_perp = (incident_vector + normal * cos_theta) * etai_over_etat;
     let r_out_parallel = normal * -(f64::abs(1.0 - r_out_perp.length_squared())).sqrt();
-    return r_out_perp + r_out_parallel;
+    r_out_perp + r_out_parallel
 }
 
 fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
