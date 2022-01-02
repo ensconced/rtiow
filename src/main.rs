@@ -19,7 +19,6 @@ use rand::{random, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
 use std::{
-    mem,
     sync::{
         mpsc::{channel, Receiver, Sender},
         Arc,
@@ -100,7 +99,6 @@ fn display_threads_progress(
         report.push(ThreadProgress {
             scanlines_remaining: thread_info.row_count,
             thread_idx: thread_info.thread_idx,
-            done: false,
         });
     }
 
@@ -145,7 +143,6 @@ struct ThreadResult {
 struct ThreadProgress {
     scanlines_remaining: u32,
     thread_idx: u32,
-    done: bool,
 }
 
 #[derive(Debug)]
@@ -177,7 +174,6 @@ fn run_thread(
                     .send(ThreadProgress {
                         scanlines_remaining: end_row - row,
                         thread_idx,
-                        done: false,
                     })
                     .unwrap();
                 // display_progress(camera.image_height, row, start_time);
