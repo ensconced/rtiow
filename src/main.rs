@@ -176,7 +176,6 @@ fn run_thread(
                         thread_idx,
                     })
                     .unwrap();
-                // display_progress(camera.image_height, row, start_time);
             }
 
             for col in 0..camera.image_width {
