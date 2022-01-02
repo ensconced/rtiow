@@ -15,7 +15,7 @@ use hittable_list::HittableList;
 use material::{Dielectric, Lambertian, Metal};
 use num_cpus;
 use pixel::Pixel;
-use rand::{random, Rng};
+use rand::{prelude::SliceRandom, random, thread_rng, Rng};
 use ray::Ray;
 use sphere::ObjectSphere;
 use std::{
@@ -32,9 +32,9 @@ use vec3::Vec3;
 
 const MAX_COLOR: u32 = 255;
 const MAX_DEPTH: u32 = 50;
-const SAMPLES_PER_PIXEL: u32 = 10;
+const SAMPLES_PER_PIXEL: u32 = 500;
 const SHADOW_ACNE_AVOIDANCE_STEP: f64 = 0.001;
-const IMAGE_WIDTH: u32 = 1000;
+const IMAGE_WIDTH: u32 = 600;
 const DISPLAY_PROGRESS: bool = true;
 const VERBOSE: bool = false;
 
@@ -118,8 +118,8 @@ fn display_threads_progress(
                     ..
                 } = report[thread_info.thread_idx as usize];
                 eprintln!(
-                    "thread {}: scanlines remaining: {}",
-                    thread_idx, scanlines_remaining
+                    "thread {} - scanlines remaining: {}/{}",
+                    thread_idx, scanlines_remaining, thread_info.row_count
                 );
             }
         } else {
@@ -134,8 +134,13 @@ fn display_done() {
     eprintln!("Done");
 }
 
-struct ThreadResult {
+struct ThreadRowResult {
+    row_idx: u32,
     pixels: Vec<RenderColor>,
+}
+
+struct ThreadResult {
+    rows: Vec<ThreadRowResult>,
     thread_idx: u32,
 }
 
@@ -155,29 +160,32 @@ struct ThreadInfo {
 
 fn run_thread(
     thread_idx: u32,
-    start_row: u32,
-    end_row: u32,
+    rows: Vec<u32>,
     camera: Camera,
     start_time: Instant,
     world: HittableList,
     result_sender: Sender<ThreadResult>,
     progress_sender: Sender<ThreadProgress>,
 ) -> JoinHandle<()> {
+    let rows_len = (&rows).len();
     thread::spawn(move || {
-        let mut result = ThreadResult {
-            pixels: Vec::new(),
+        let mut thread_result = ThreadResult {
+            rows: Vec::new(),
             thread_idx,
         };
-        for row in start_row..=end_row {
-            if DISPLAY_PROGRESS {
-                progress_sender
-                    .send(ThreadProgress {
-                        scanlines_remaining: end_row - row,
-                        thread_idx,
-                    })
-                    .unwrap();
-            }
-
+        if DISPLAY_PROGRESS {
+            progress_sender
+                .send(ThreadProgress {
+                    scanlines_remaining: rows_len as u32,
+                    thread_idx,
+                })
+                .unwrap();
+        }
+        for (row_idx, row) in rows.iter().enumerate() {
+            let mut thread_row_result = ThreadRowResult {
+                row_idx: *row,
+                pixels: Vec::new(),
+            };
             for col in 0..camera.image_width {
                 if VERBOSE {
                     eprintln!("ROW {} COL {}", row, col);
@@ -189,7 +197,7 @@ fn run_thread(
                         let pixel_x: f64 = random();
                         let pixel_y: f64 = random();
                         let x_position = col as f64 + pixel_x;
-                        let y_position = row as f64 + pixel_y;
+                        let y_position = *row as f64 + pixel_y;
                         let x_level = x_position / camera.image_width as f64;
                         let y_level = 1.0 - (y_position / camera.image_height as f64);
                         if VERBOSE {
@@ -200,10 +208,21 @@ fn run_thread(
                     }
                     pixel.get_color()
                 };
-                result.pixels.push(RenderColor::from_color(pixel_color));
+                thread_row_result
+                    .pixels
+                    .push(RenderColor::from_color(pixel_color));
+            }
+            thread_result.rows.push(thread_row_result);
+            if DISPLAY_PROGRESS {
+                progress_sender
+                    .send(ThreadProgress {
+                        scanlines_remaining: rows.len() as u32 - row_idx as u32 - 1,
+                        thread_idx,
+                    })
+                    .unwrap();
             }
         }
-        result_sender.send(result).unwrap();
+        result_sender.send(thread_result).unwrap();
     })
 }
 
@@ -236,21 +255,30 @@ fn start_threads(
     world: HittableList,
     result_sender: Sender<ThreadResult>,
     progress_sender: Sender<ThreadProgress>,
-) -> Vec<JoinHandle<()>> {
-    let mut join_handles = vec![];
+) {
+    let rows_per_thread = (camera.image_height as f64 / thread_infos.len() as f64).ceil() as usize;
+    let mut rows: Vec<u32> = (0..camera.image_height).collect();
+    let mut rng = thread_rng();
+    rows.shuffle(&mut rng);
+    let mut thread_rows = rows.chunks(rows_per_thread);
+
     for thread_info in thread_infos {
-        join_handles.push(run_thread(
-            thread_info.thread_idx,
-            thread_info.start_row,
-            thread_info.end_row,
-            camera,
-            start_time,
-            world.clone(),
-            result_sender.clone(),
-            progress_sender.clone(),
-        ));
+        if let Some(rows) = thread_rows.next() {
+            let mut vec = Vec::new();
+            vec.extend_from_slice(rows);
+            run_thread(
+                thread_info.thread_idx,
+                vec,
+                camera,
+                start_time,
+                world.clone(),
+                result_sender.clone(),
+                progress_sender.clone(),
+            );
+        } else {
+            panic!("no rows :(");
+        }
     }
-    join_handles
 }
 
 fn main() {
@@ -344,7 +372,7 @@ fn main() {
     let thread_infos = get_threads_info(camera.image_height);
     let (result_sender, result_receiver) = channel::<ThreadResult>();
     let (progress_sender, progress_receiver) = channel::<ThreadProgress>();
-    let join_handles = start_threads(
+    start_threads(
         &thread_infos,
         camera,
         start_time,
@@ -355,13 +383,19 @@ fn main() {
     display_threads_progress(progress_receiver, &thread_infos);
 
     let mut thread_results = vec![];
-    for _ in 0..join_handles.len() {
+    for _ in 0..thread_infos.len() {
         thread_results.push(result_receiver.recv().unwrap());
     }
 
-    thread_results.sort_by_key(|res| res.thread_idx);
+    let mut all_row_results = vec![];
     for thread_result in thread_results {
-        for pixel in thread_result.pixels {
+        for row_result in thread_result.rows {
+            all_row_results.push(row_result);
+        }
+    }
+    all_row_results.sort_by_key(|row_result| row_result.row_idx);
+    for row_result in all_row_results {
+        for pixel in row_result.pixels {
             println!("{}", pixel);
         }
     }
