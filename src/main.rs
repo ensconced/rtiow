@@ -362,7 +362,7 @@ fn main() {
     thread_results.sort_by_key(|res| res.thread_idx);
     for thread_result in thread_results {
         for pixel in thread_result.pixels {
-            print!("{}", pixel);
+            println!("{}", pixel);
         }
     }
 
